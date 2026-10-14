@@ -1,6 +1,6 @@
 # Requisiti e criteri di accettazione
 
-Fonte: richiesta allegata «CODEX — Progetto Gestionale Multi-Loggia». Esecuzione limitata alla prima fase.
+Fonte: richiesta allegata «CODEX — Progetto Gestionale Multi-Loggia». Fondamenta completate; nuova richiesta del 14 ottobre 2026 autorizza la sola fase modello dati e organizzazione.
 
 ## Fase 1
 - Verifica repository, PHP >=8.3, Composer, estensioni e compatibilità Laravel 13/Livewire 4.
@@ -20,3 +20,8 @@ Monolite e tenant loggia; account globale, persona locale; user può avere più 
 
 ## Qualità trasversale
 WCAG 2.2 AA obiettivo (audit completo futuro); mobile-first, navigazione desktop laterale, controlli chiari, form e filtri/paginazione nei moduli futuri. Nessun dato personale pubblico, indicizzazione vietata, HTTPS obbligatorio in produzione. Test di isolamento e ruoli, OTP, scadenze/idempotenza, parziali/arretrati, saldi/giroconti/storni nelle rispettive fasi. Non dichiarare il prodotto operativo per dati reali nella fase 1.
+
+## Fase organizzativa (richiesta successiva)
+Implementati CRUD con disattivazione per obbedienze, riti, strutture, logge e associazioni rito/obbedienza. Numero univoco nella propria obbedienza; gerarchie coerenti, non cicliche e con livelli intermedi opzionali; vincoli MySQL 8 e relazioni Eloquent. Collegamenti territoriali versionati, cancellazioni distruttive escluse e protette da FK quando collegate. Selettore loggia per sole membership/ruoli autorizzati; nessun accesso tenant implicito al Super User. Dati demo fittizi con seeder esplicito, senza account. Test SQLite e MySQL, schermate desktop/mobile in docs/screenshots.
+
+Il login, gli inviti, l'invio OTP e la gestione utenti restano fuori scope: le schermate richiedono una sessione già verificata e non sono accessibili pubblicamente. Non procedere a capitazioni, canoni, tesoreria o altre fasi.

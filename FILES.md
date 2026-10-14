@@ -22,3 +22,22 @@ Tutti i file dello starter sono nuovi nel repository inizialmente vuoto. I file 
 | .github/workflows/tests.yml | CI PHP 8.3/Node 24 predisposta |
 
 `.env`, database SQLite locale, vendor, node_modules, log/cache e intermedi non fanno parte dei sorgenti versionabili. In produzione generare APP_KEY e configurare i servizi reali. Gli asset public/build sono inclusi per rendere il frontend consegnabile senza Node sul server.
+
+## Aggiunte organizzative
+
+| File / directory | Scopo |
+| --- | --- |
+| ORGANIZATION.md, ORGANIZATION-VERIFICATION.md | Decisioni, invarianti, limiti e verifica della nuova fase |
+| database/migrations/2026_10_14_160000_create_organization_tables.php | Organizzazione, compatibilità, storico territoriale e audit |
+| database/migrations/2026_10_14_160100_add_organization_access.php | Flag amministrazione piattaforma, membership e ruoli separati |
+| app/Domains/Organization/Models | Relazioni Eloquent e divieto eliminazione distruttiva |
+| app/Domains/Organization/Actions | Validazione, transazioni/lock, invarianti e selezione autorizzata |
+| app/Domains/Organization/Policies | Policy amministrative senza bypass globale |
+| app/Domains/Identity/VerifiedSession.php, app/Http/Middleware/RequireVerifiedSession.php | Confine di integrazione con il futuro OTP; nessun login implementato |
+| app/Livewire/Organization, resources/views/livewire/organization | CRUD, filtri, paginazione, disattivazione e selettore |
+| resources/views/components/layouts/organization.blade.php | Navigazione amministrativa mobile/desktop |
+| database/seeders/OrganizationDemoSeeder.php | Demo esplicita idempotente senza account |
+| tests/Feature/OrganizationTest.php, tests/MySQL, phpunit.mysql.xml, tests/mysql-bootstrap.php | Test gerarchie, vincoli, isolamento e protezione del DB di test |
+| docs/screenshots | Schermate reali con fixture fittizie |
+
+Le fixture di autenticazione per le schermate sono esterne al repository, legate a un DB locale separato e server loopback; non vengono distribuite.

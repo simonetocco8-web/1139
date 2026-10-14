@@ -1,6 +1,6 @@
-# Gestionale Multi-Loggia — fase 1
+# Gestionale Multi-Loggia — fondamenta e organizzazione
 
-Fondamenta Laravel 13, Livewire 4, Blade, Tailwind e Fortify. Documenti iniziali redatti prima del codice: ARCHITECTURE.md, DATABASE.md, REQUIREMENTS.md, ROADMAP.md. Nessuna capitazione, canone o tesoreria implementati. Nessun dato personale o account demo.
+Fondamenta Laravel 13, Livewire 4, Blade, Tailwind e Fortify. Documenti iniziali redatti prima del codice: ARCHITECTURE.md, DATABASE.md, REQUIREMENTS.md, ROADMAP.md. Modello organizzativo e CRUD realizzati nella richiesta successiva: obbedienze, riti/compatibilità, gerarchie e logge. Nessuna capitazione, canone o tesoreria implementati. Nessun dato personale o account demo.
 
 ## Prerequisiti
 PHP 8.3+ (CLI e web della stessa versione), Composer 2, estensioni ctype, curl, dom/XML, fileinfo, filter, hash, mbstring, openssl, PDO/pdo_mysql, session, tokenizer, zip. MySQL 8.x InnoDB/utf8mb4. Node 22.12+ o 24 LTS soltanto sulla macchina di build. Il lock Composer è risolto con platform.php=8.3.0, anche se in questa sessione si esegue PHP 8.4.26; `composer check-platform-reqs` verifica l'ambiente reale. PHPUnit 11 mantiene la compatibilità di sviluppo PHP 8.3.
@@ -58,3 +58,36 @@ La fase 1 non programma job di business. Il cron predispone l'infrastruttura; ne
 
 ## Provenienza
 Starter ufficiale `laravel/livewire-starter-kit`, commit `0f62a26c4e4b401c1300930f47d72a497add8cce`, licenza MIT (LICENSE). Adattamenti fase 1: niente wizard Chisel, dipendenze server opzionali rimosse, Vite standard senza font remoti, autenticazione chiusa, seed vuoto e layout italiano. Pacchetti TOTP/passkey transitivi di Fortify non sono funzionalità attivate.
+
+## Modello dati e struttura organizzativa
+La nuova fase aggiunge le due migrazioni `2026_10_14_160000_create_organization_tables.php` e `2026_10_14_160100_add_organization_access.php`. Prima di migrare un ambiente operativo, eseguire backup protetto e verificare restore; poi, con MySQL 8 configurato:
+```sh
+php artisan migrate --force
+npm ci
+npm run build
+```
+Il deploy senza Node usa gli asset `public/build` già compilati. Non usare migrate:fresh su dati operativi; il rollback di queste due migrazioni elimina le tabelle organizzative e non va usato come disattivazione.
+
+Schermate Livewire implementate (accesso riservato):
+- `/admin/organizzazione/obediences`: ricerca, CRUD/disattivazione obbedienze e associazione dei riti.
+- `/admin/organizzazione/rites`: ricerca, CRUD/disattivazione riti.
+- `/admin/organizzazione/structures`: ricerca, CRUD/disattivazione e struttura genitore facoltativa.
+- `/admin/organizzazione/lodges`: ricerca, CRUD/disattivazione, numero per obbedienza, rito compatibile e storico territoriale.
+- `/loggia`: sole logge per cui il soggetto dispone di membership attiva e almeno un ruolo; nessun accesso implicito per amministratori piattaforma.
+
+Il Super User è un flag server-side non mass-assignable, non un ruolo tenant universale. Ogni schermata e richiesta Livewire richiede account autenticato, secondo fattore attestato server-side e autorizzazione. Il login resta chiuso fino alla sua fase dedicata: non ci sono account/password demo, comandi per concedere privilegi, route di anteprima o bypass del secondo fattore distribuiti. I marker di integrazione del futuro OTP sono descritti in ARCHITECTURE.md; vanno cancellati al nuovo login, cambio account, recupero e revoca, ed emessi solo dal verificatore dopo rigenerazione sessione. Non impostarli dal browser o con una route amministrativa.
+
+Dati dimostrativi completamente fittizi, solo in locale/testing:
+```sh
+php artisan db:seed --class=OrganizationDemoSeeder
+```
+Il seeder è idempotente, non crea account ed è vietato in produzione. Il seed predefinito resta vuoto. Lo schema di membership/ruoli predispone solo il selettore; la loro gestione tramite inviti e permessi sarà una fase successiva.
+
+Documenti attuali: ORGANIZATION.md (invarianti/assunzioni), ORGANIZATION-VERIFICATION.md (risultati), DATABASE.md (vincoli). Schermate reali in `docs/screenshots/README.md`, con solo dati fittizi.
+
+### Test MySQL
+Oltre a `composer test`, la suite MySQL include controlli InnoDB/chiave generata. Serve un database **dedicato e sacrificabile** con nome terminante in `_test`; RefreshDatabase ricrea le tabelle. Usare una configurazione di test separata e protetta, con DB_CONNECTION=mysql, DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME e DB_PASSWORD reali per quella sola istanza; nessuna credenziale di produzione. Poi:
+```sh
+php vendor/bin/phpunit -c phpunit.mysql.xml
+```
+Non eseguire la suite con un database operativo. Il bootstrap blocca nomi che non terminano in `_test`. In questa sessione le verifiche sono state eseguite su un container temporaneo MySQL 8.0.46, rimosso al termine; Docker è esclusivamente uno strumento di test, non una dipendenza applicativa o requisito cPanel. La CI include un servizio MySQL 8 con credenziali effimere dedicate ai test.

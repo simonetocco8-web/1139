@@ -2,11 +2,17 @@
 
 namespace App\Providers;
 
+use App\Domains\Organization\Actions\OrganizationActions;
+use App\Domains\Organization\Policies\OrganizationPolicy;
+use App\Http\Middleware\RequireVerifiedSession;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Livewire\Livewire;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -24,6 +30,11 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        Livewire::addPersistentMiddleware([RequireVerifiedSession::class]);
+        Gate::define('manage-organization', fn (User $user) => $user->is_platform_admin);
+        foreach (OrganizationActions::MODELS as $class) {
+            Gate::policy($class, OrganizationPolicy::class);
+        }
     }
 
     /**

@@ -1,13 +1,16 @@
-# Database — progetto dei vincoli, non migration implementate
+# Database — schema organizzativo implementato e domini futuri
 
 MySQL 8.x InnoDB, utf8mb4; identificatori BIGINT UNSIGNED; importi DECIMAL(15,2), mai FLOAT. Calcoli in centesimi interi o decimal string con arrotondamento esplicito half-up; vietato cast float. FK RESTRICT per dati amministrativi/contabili; cancellazione controllata, non cascade su registrazioni contabilizzate. In fase 1 si installano esclusivamente le tabelle infrastrutturali dello starter (users, password_reset_tokens, sessions, cache/cache_locks, jobs/job_batches/failed_jobs). Seed senza account o persone demo.
 
-## Organizzazione (fase 3)
+## Organizzazione (implementata nella fase organizzativa autorizzata)
 - obediences: id, code UNIQUE, name, contatti opzionali, status.
 - rites: id, code UNIQUE, name; obedience_rite UNIQUE(obedience_id,rite_id).
 - structures: id, obedience_id FK, parent_id nullable, level nazionale/regionale/provinciale, name, contatti e IBAN facoltativi, status; UNIQUE(obedience_id,id); FK composita (obedience_id,parent_id) -> structures(obedience_id,id).
 - lodges: id, obedience_id FK, rite_id FK, number, name, contatti, IBAN, status, settings JSON; UNIQUE(obedience_id,number). Compatibilità rito/obbedienza verificata da servizio e FK sulla pivot ove obbligatoria.
-- lodge_structure: lodge_id, structure_id, obedience_id; UNIQUE(lodge_id,structure_id); FK composite su lodge e struttura con medesima obbedienza. Livelli facoltativi, nessuna catena obbligatoria a tre livelli.
+- lodge_territorial_assignments (sostituisce la pivot lodge_structure prevista): id, lodge_id, structure_id, obedience_id, level, structure_name snapshot, starts_at UTC, ended_at UTC nullable; colonna active_level generata = level solo se ended_at è NULL; UNIQUE(lodge_id,active_level). FK composite per obbedienza/loggia e obbedienza/struttura/livello. Le righe chiuse rimangono storiche e non sono riaperte o riscritte. Livelli facoltativi, nessuna catena obbligatoria a tre livelli.
+- organization_events: attore FK users RESTRICT, tipo/id entità, created/updated/activated/deactivated, occurred_at UTC; solo insert nelle Action, senza dettagli personali.
+- lodge_user e lodge_user_roles: schema di predisposizione selettore, membership con stato e più ruoli per tenant. Nessuna interfaccia di gestione utenti e nessun account demo. users.is_platform_admin default false, non fillable.
+Le migrazioni 2026_10_14_160000_create_organization_tables.php e 2026_10_14_160100_add_organization_access.php implementano questi elementi con indici esplicitamente brevi dove necessario per il limite MySQL di 64 caratteri.
 La gerarchia richiede transazione con lock delle strutture dell'obbedienza: vietati auto-parent, cicli, genitori di livello subordinato e obbedienze differenti. La FK non impedisce cicli da sola.
 
 ## Identità e iscrizioni (fase 2/3)
@@ -37,3 +40,6 @@ Maturazione genera credito/debito, mai movimento di cassa. Arretrato = residuo c
 
 ## Test necessari su MySQL
 FK composite, CHECK, collazione/unicità, locking concorrente, deadlock retry, consumo OTP, doppi job e doppie allocazioni. SQLite per test infrastrutturali non certifica queste proprietà; non dichiarare completata la verifica MySQL senza un'istanza MySQL 8.
+
+## Stato delle verifiche
+Schema e suite realmente eseguiti su MySQL 8.0.46 InnoDB, oltre a SQLite; dettagli aggiornati in ORGANIZATION-VERIFICATION.md. Le tabelle di contabilità, persone iscritte, inviti, OTP e accesso assistito restano soltanto progettate. Il blocco iniziale "In fase 1" descrive le sole fondamenta precedenti, non lo stato corrente della fase organizzativa.

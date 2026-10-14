@@ -5,6 +5,19 @@ permissions:
 jobs:
   foundation:
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: organization_test
+          MYSQL_ROOT_PASSWORD: ci-only-organization-test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -20,3 +33,12 @@ jobs:
       - run: cp .env.example .env && php artisan key:generate
       - run: npm ci && npm run build
       - run: composer test
+      - name: Test MySQL 8 (database dedicato)
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: organization_test
+          DB_USERNAME: root
+          DB_PASSWORD: ci-only-organization-test
+        run: php vendor/bin/phpunit -c phpunit.mysql.xml

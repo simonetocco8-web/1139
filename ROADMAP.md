@@ -9,3 +9,6 @@
 7. **Report, privacy e rilascio.** Export autorizzati, retention/anonimizzazione, restore backup, audit WCAG, revisione sicurezza, test cPanel/MySQL/cron/SMTP. Gate: decisioni privacy completate e verifica indipendente prima di dati reali.
 
 Le fasi 2–7 richiedono una nuova istruzione: non avviarle autonomamente.
+
+## Aggiornamento della sequenza autorizzata
+La richiesta "FASE 1: MODELLO DATI E STRUTTURA ORGANIZZATIVA" autorizza anticipatamente la parte organizzativa della voce 3 e la sola predisposizione del selettore (membership/ruoli), senza realizzare la voce 2. Login/inviti/OTP restano chiusi, nessun modulo di iscrizioni o contabilità implementato. Fermarsi alla consegna organizzativa; le altre voci continuano a richiedere una nuova istruzione.
