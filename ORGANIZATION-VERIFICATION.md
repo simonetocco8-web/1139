@@ -16,6 +16,8 @@ Data: 14 ottobre 2026. PHP 8.4.26, Laravel 13.36.0, Livewire 4.4.7; lock compati
 - Chromium/Playwright: le cinque schermate a 1440x1000 e 320x740; form strutture/logge aperti con veri aggiornamenti Livewire, selezione loggia effettuata via browser. HTTP 200, nessun errore JavaScript/server o richiesta esterna, nessun overflow orizzontale. Dieci screenshot in docs/screenshots.
 
 ## Correzioni emerse dal collaudo
+Corretto anche un errore della CI precedente: phpunit.xml riferiva tests/Unit, directory vuota non versionata da Git. Rimossa la suite vuota da entrambe le configurazioni; conservata la suite Feature e la suite MySQL. Integrati gli aggiornamenti Actions v7 già presenti su GitHub.
+
 MySQL ha rilevato un identificatore indice oltre il limite 64 caratteri; assegnato nome esplicito breve e ripetuta l'intera suite con successo. L'analisi statica ha portato a query firstOrFail dopo whereKey (evitano ritorni ambigui collection/model) e normalizzazione dei campi nullable. Rifiutato reparenting che invalidi una catena loggia esistente; chiusura delle assegnazioni ammessa una sola volta.
 
 ## Limiti e confini
