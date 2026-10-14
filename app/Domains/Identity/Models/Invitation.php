@@ -16,6 +16,6 @@ class Invitation extends Model
 
     protected function casts(): array
     {
-        return ['invited_by' => 'integer', 'roles' => 'array', 'bootstrap' => 'boolean', 'platform_admin' => 'boolean', 'expires_at' => UtcDateTime::class, 'accepted_at' => UtcDateTime::class, 'revoked_at' => UtcDateTime::class, 'lodge_id' => 'integer'];
+        return ['invited_by' => 'integer', 'roles' => 'array', 'bootstrap' => 'boolean', 'platform_admin' => 'boolean', 'expires_at' => UtcDateTime::class, 'accepted_at' => UtcDateTime::class, 'revoked_at' => UtcDateTime::class, 'person_id' => 'integer', 'lodge_id' => 'integer'];
     }
 }

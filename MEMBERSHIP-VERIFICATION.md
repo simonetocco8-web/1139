@@ -1,0 +1,20 @@
+# Verifiche fase 3 — 14 ottobre 2026
+
+## Risultati
+- SQLite: 126 test, 724 asserzioni, inclusi tutti i test delle fasi precedenti. 31 test dedicati alle anagrafiche.
+- MySQL 8.0.46 InnoDB: 132 test, 749 asserzioni. Vincoli FK tenant/persona, unicità locale/account, CHECK sulle date e stato concluso, colonna generata per un unico intervallo aperto; conservati test OTP concorrente e organizzazione.
+- Pint e Larastan livello 7 senza errori; Composer validate --strict, build Vite e cache config/route/view riusciti. Rollback della sola migrazione fase 3 e riapplicazione verificati su database MySQL sacrificabile.
+- Browser Chromium: desktop 1440×1000 e mobile 320×740, login password + OTP SMTP locale effettivo, selettore, elenco, scheda/modifica iscrizione, impostazioni, posizione personale, inserimento, chiusura definitiva, CSV con anteprima e conferma. 18 schermate con soli dati fittizi; correzione e controllo dei titoli lunghi su mobile. Nessun errore JavaScript, richiesta esterna o overflow orizzontale rilevato. Nessun invio ad altri soggetti o provider produttivo.
+
+## Isolamento e controlli
+Admin locale senza ruolo nell'altra loggia, tenant URL diverso da quello selezionato, ID persona di altra loggia, ID iscrizione di un'altra persona/loggia, inviti con ID estraneo, selettore manomesso, Super User senza membership, account con accesso revocato o senza OTP: lettura/modifica rifiutate. Fratello non legge directory, schede altrui o export; stesso account su più logge legge esclusivamente la propria persona della loggia selezionata. Resolver ownEnrollment rifiuta anche l'iscrizione di un'altra loggia dello stesso account.
+Tesoriere legge/esporta ma non modifica identità/iscrizioni o impostazioni. Nessun account/ruolo assegnabile dal payload anagrafico o CSV. Invito vincolato alla persona, account associato solo dopo accettazione; account già esistente richiede sessione verificata. Email anagrafica cambiata/chiusura revocano inviti pending. Account locale unico per persona; stesso account associabile in più logge.
+Conferma richiesta server-side, versione contro modifiche obsolete, fine obbligatoria e non futura per chiusura, esenzioni motivate e intervalli non sovrapposti. Iscrizioni concluse/storico immutabili, nessuna cancellazione, snapshot cifrati e date locali serializzate senza slittamento UTC. Contatti cifrati e audit senza valori personali.
+
+## CSV, impostazioni e dati demo
+Anteprima senza scrittura di persone, payload cifrato, sessione/attore/tenant, scadenza e singolo consumo. Duplicati dentro il file/in database, righe errate, intestazione, dimensione, codifica e massimo 200 righe; campo multilinea quotato. Riconvalida alla conferma e rollback dell'intero batch in caso di duplicato sopraggiunto. Conferma HTTP esplicita, payload svuotato al consumo e prune delle anteprime scadute.
+Export solo tenant autorizzato, minimizzato (no recapiti/motivazioni), protezione formule CSV; output HTML con escaping e risposta privata/no-store/no-referrer. Impostazioni non accettano obbedienza/rito/status/ruoli dal payload e proteggono aggiornamenti obsoleti. Preferenza tesoreria non modifica permessi. Seeder idempotente: nove persone fittizie, nove iscrizioni, nessun account; rifiutato in produzione.
+
+## Riproduzione e limiti
+`composer test`; `php vendor/bin/phpunit -c phpunit.mysql.xml` su database MySQL dedicato con nome `_test`, credenziali effimere (la suite ricrea lo schema); `npm run build`. Nessun migrate:fresh o rollback su dati operativi. Seeder: `php artisan db:seed --class=MembershipDemoSeeder` soltanto locale/testing. Cron scheduler esistente esegue model:prune ogni ora: anteprime inutilizzabili dopo 15 minuti, rimosse entro il successivo passaggio orario se il cron funziona.
+Contabilità non implementata: la pagina personale dichiara l'assenza del modulo economico, senza saldi inventati. Le future query finanziarie dovranno usare il resolver di proprietà e FK composite tenant/iscrizione. Nessun automatismo di invio promemoria/tesoreria attivato dalle preferenze. SMTP commerciale/SMS, cPanel, restore operativo e audit indipendente restano da collaudare nei rispettivi ambienti.

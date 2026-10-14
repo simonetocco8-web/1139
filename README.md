@@ -1,6 +1,6 @@
-# Gestionale Multi-Loggia — organizzazione, identità e OTP
+# Gestionale Multi-Loggia — organizzazione, identità e anagrafiche
 
-Fondamenta Laravel 13, Livewire 4, Blade, Tailwind e Fortify. Documenti iniziali redatti prima del codice: ARCHITECTURE.md, DATABASE.md, REQUIREMENTS.md, ROADMAP.md. Modello organizzativo e CRUD realizzati nella richiesta successiva: obbedienze, riti/compatibilità, gerarchie e logge. Nessuna capitazione, canone o tesoreria implementati. Nessun dato personale o account demo.
+Fondamenta Laravel 13, Livewire 4, Blade, Tailwind e Fortify. Documenti iniziali redatti prima del codice: ARCHITECTURE.md, DATABASE.md, REQUIREMENTS.md, ROADMAP.md. Modello organizzativo e CRUD realizzati nella richiesta successiva: obbedienze, riti/compatibilità, gerarchie e logge. Fase 3: persone locali, iscrizioni e storico, importazione CSV e impostazioni loggia. Nessuna capitazione, canone o tesoreria implementati. Solo dati dimostrativi fittizi, nessun account demo nel seed.
 
 ## Prerequisiti
 PHP 8.3+ (CLI e web della stessa versione), Composer 2, estensioni ctype, curl, dom/XML, fileinfo, filter, hash, mbstring, openssl, PDO/pdo_mysql, session, tokenizer, zip. MySQL 8.x InnoDB/utf8mb4. Node 22.12+ o 24 LTS soltanto sulla macchina di build. Il lock Composer è risolto con platform.php=8.3.0, anche se in questa sessione si esegue PHP 8.4.26; `composer check-platform-reqs` verifica l'ambiente reale. PHPUnit 11 mantiene la compatibilità di sviluppo PHP 8.3.
@@ -99,3 +99,22 @@ Oltre a `composer test`, la suite MySQL include controlli InnoDB/chiave generata
 php vendor/bin/phpunit -c phpunit.mysql.xml
 ```
 Non eseguire la suite con un database operativo. Il bootstrap blocca nomi che non terminano in `_test`. In questa sessione le verifiche sono state eseguite su un container temporaneo MySQL 8.0.46, rimosso al termine; Docker è esclusivamente uno strumento di test, non una dipendenza applicativa o requisito cPanel. La CI include un servizio MySQL 8 con credenziali effimere dedicate ai test.
+
+## Fase 3 — anagrafiche e impostazioni loggia
+Applicare `2026_10_14_180000_create_membership_tables.php` mediante `php artisan migrate --force` dopo backup/restore verificato. Il rollback elimina anagrafiche/storico/importazioni/configurazioni: non usarlo per disattivare iscrizioni. Deploy con build aggiornato; nessuna nuova dipendenza Composer/npm.
+
+- `/loggia/fratelli`: elenco locale, ricerca nome/cognome, filtro stato ultima iscrizione, esportazione CSV autorizzata.
+- `/logge/{lodge}/fratelli/nuovo` e `/logge/{lodge}/fratelli/{person}`: inserimento, modifica, iscrizioni, esenzioni motivate, chiusura definitiva, invito vincolato alla persona e storico cifrato.
+- `/loggia/fratelli/importazione`: modello CSV, anteprima/validazione e conferma atomica; massimo 200 righe/256 KiB, solo nuove persone.
+- `/loggia/impostazioni`: anagrafica/preferenze locali, struttura organizzativa, responsabili e visibilità della futura tesoreria.
+- `/loggia/posizione-personale`: sole iscrizioni del proprio account nella loggia attiva. Nessun saldo fittizio; il modulo economico non è ancora disponibile.
+
+Amministratore locale gestisce, Tesoriere legge/esporta, Fratello consulta soltanto la propria scheda. Ruoli, account e iscrizioni sono separati: chiudere un'iscrizione conserva accesso storico e non cambia automaticamente i ruoli. Revocare l'accesso operativo dalla pagina Accessi quando necessario. Super User senza membership/consenso non legge elenchi. Ogni identificativo URL viene verificato rispetto alla loggia attiva e alle autorizzazioni correnti.
+
+Dati dimostrativi espliciti (locale/testing, nessun account o messaggio):
+```sh
+php artisan db:seed --class=MembershipDemoSeeder
+```
+Nove persone completamente fittizie in tre logge demo, stati attivo/sospeso/concluso; seeder idempotente, vietato in produzione. Il seed predefinito resta vuoto. Le anteprime CSV sono cifrate, scadono in 15 minuti e vengono rimosse da `model:prune` ogni ora tramite il cron scheduler già documentato. Dopo conferma i dati del payload sono subito svuotati. Mantenere APP_KEY nei backup protetti.
+
+[Modello e assunzioni](MEMBERSHIP.md), [verifiche](MEMBERSHIP-VERIFICATION.md), [schermate desktop/mobile](docs/screenshots/membership/README.md). Fermarsi qui: contabilità, notifiche operative e report economici sono fasi future.

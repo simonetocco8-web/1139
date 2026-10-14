@@ -1,0 +1,6 @@
+@extends('membership.page')
+@section('title', 'Importa iscritti da CSV')
+@section('content')
+<div class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-7"><p class="leading-7">Importazione di nuove persone e prime iscrizioni in questa loggia. Massimo 200 righe, 256 KiB, UTF-8 e separatore virgola. Non vengono creati account né inviati inviti.</p><a href="{{ route('members.template') }}" class="mt-3 inline-flex min-h-12 items-center font-semibold text-teal-900 underline">Scarica modello con esempio fittizio</a><p class="mt-3 text-sm text-slate-600">Codici già presenti o ripetuti bloccano l’importazione. Stati: active, suspended, ended. Esenzione: 0 oppure 1 con motivazione. Date: AAAA-MM-GG. Le righe vengono validate prima della conferma e ricontrollate al salvataggio.</p>
+<form class="mt-6" method="POST" enctype="multipart/form-data" action="{{ route('members.import.upload', $lodge->id) }}">@csrf<label class="block font-semibold">File CSV<input type="file" name="csv" accept=".csv,text/csv" required class="mt-3 block w-full min-w-0 text-sm"></label><button class="mt-5 min-h-12 rounded-xl bg-teal-800 px-5 font-semibold text-white">Valida e mostra anteprima</button></form></div>
+@endsection

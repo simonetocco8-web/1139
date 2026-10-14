@@ -2,6 +2,7 @@
 
 namespace App\Domains\Organization\Models;
 
+use App\Domains\Membership\Models\Person;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -12,6 +13,17 @@ class Lodge extends OrganizationalModel
     protected $table = 'lodges';
 
     protected $fillable = ['obedience_id', 'rite_id', 'number', 'name', 'email', 'phone', 'address', 'iban', 'is_active'];
+
+    protected function casts(): array
+    {
+        return parent::casts() + ['reminder_days' => 'integer', 'brothers_treasury_visible' => 'boolean'];
+    }
+
+    /** @return HasMany<Person, $this> */
+    public function people(): HasMany
+    {
+        return $this->hasMany(Person::class);
+    }
 
     /** @return BelongsTo<Obedience, $this> */
     public function obedience(): BelongsTo

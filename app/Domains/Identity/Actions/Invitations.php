@@ -10,6 +10,8 @@ use App\Domains\Identity\Delivery\DeliveryUnavailable;
 use App\Domains\Identity\Models\Invitation;
 use App\Domains\Identity\PasswordRules;
 use App\Domains\Identity\VerifiedSession;
+use App\Domains\Membership\Models\MemberHistory;
+use App\Domains\Membership\Models\Person;
 use App\Domains\Organization\Models\Lodge;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -23,7 +25,7 @@ final class Invitations
     public function __construct(private CodeTransport $delivery) {}
 
     /** @param list<string> $roles */
-    public function lodge(int $lodgeId, string $email, array $roles, bool $bootstrap = false): Invitation
+    public function lodge(int $lodgeId, string $email, array $roles, bool $bootstrap = false, ?int $personId = null): Invitation
     {
         $actor = VerifiedSession::recent();
         $email = mb_strtolower(trim($email));
@@ -33,7 +35,7 @@ final class Invitations
         } else {
             abort_unless($actor->is_platform_admin && $roles === ['administrator'] && $email !== mb_strtolower(trim($actor->email)), 403);
         }
-        $invitation = DB::transaction(function () use ($actor, $lodgeId, $email, $roles, $bootstrap): Invitation {
+        $invitation = DB::transaction(function () use ($actor, $lodgeId, $email, $roles, $bootstrap, $personId): Invitation {
             $lodge = Lodge::query()->whereKey($lodgeId)->where('is_active', true)->lockForUpdate()->firstOrFail();
             if (! $bootstrap) {
                 app(TenantContext::class)->assertTenant($lodgeId, 'administration');
@@ -43,7 +45,13 @@ final class Invitations
                     || Invitation::query()->where('lodge_id', $lodgeId)->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now('UTC')->format('Y-m-d H:i:s.u'))->whereJsonContains('roles', 'administrator')->exists(), 403, 'Un amministratore è già stato predisposto.');
             }
 
-            return $this->issue($email, $actor->id, $lodge->id, $roles, false, $bootstrap);
+            if ($personId !== null) {
+                abort_if($bootstrap, 403);
+                $person = Person::query()->where('lodge_id', $lodgeId)->whereKey($personId)->lockForUpdate()->firstOrFail();
+                abort_unless($person->user_id === null && $person->email === $email && $person->enrollments()->where('status', 'active')->where('starts_on', '<=', now()->toDateString())->where(fn ($q) => $q->whereNull('ends_on')->orWhere('ends_on', '>=', now()->toDateString()))->exists(), 409, 'Invito non disponibile per questa iscrizione.');
+            }
+
+            return $this->issue($email, $actor->id, $lodge->id, $roles, false, $bootstrap, $personId);
         }, 3);
         $this->ensureDelivered($invitation);
 
@@ -89,6 +97,11 @@ final class Invitations
             $invite = Invitation::query()->where('token_digest', hash('sha256', $token))->lockForUpdate()->firstOrFail();
             abort_if($invite->accepted_at !== null || $invite->revoked_at !== null || CarbonImmutable::parse($invite->expires_at)->lessThanOrEqualTo(now('UTC')) || $invite->delivery_state !== 'accepted', 404);
             $this->issuerStillAuthorized($invite);
+            $person = null;
+            if ($invite->person_id !== null) {
+                $person = Person::query()->where('lodge_id', $invite->lodge_id)->whereKey($invite->person_id)->lockForUpdate()->firstOrFail();
+                abort_unless($person->user_id === null && $person->email === $invite->email && $person->enrollments()->where('status', 'active')->where('starts_on', '<=', now()->toDateString())->where(fn ($q) => $q->whereNull('ends_on')->orWhere('ends_on', '>=', now()->toDateString()))->exists(), 409);
+            }
             $user = User::query()->where('email', $invite->email)->lockForUpdate()->first();
             if ($user !== null) {
                 $authenticated = VerifiedSession::recent();
@@ -96,6 +109,12 @@ final class Invitations
             } else {
                 $data = Validator::make($input, ['name' => ['required', 'string', 'max:120'], 'password' => PasswordRules::strong()])->validate();
                 $user = User::query()->forceCreate(['name' => $data['name'], 'email' => $invite->email, 'password' => Hash::make($data['password']), 'is_active' => true, 'activated_at' => now('UTC'), 'email_verified_at' => now('UTC')]);
+            }
+            if ($person !== null) {
+                abort_if(Person::query()->where('lodge_id', $invite->lodge_id)->where('user_id', $user->id)->where('id', '!=', $person->id)->exists(), 409, 'Account già associato nella loggia.');
+                $person->forceFill(['user_id' => $user->id, 'version' => $person->version + 1])->save();
+                MemberHistory::query()->create(['lodge_id' => $person->lodge_id, 'person_id' => $person->id, 'actor_id' => $user->id, 'event' => 'account.linked', 'snapshot' => ['user_id' => $user->id], 'occurred_at' => now('UTC')]);
+                Audit::record('membership.account.linked', $user->id, $person->lodge_id, metadata: ['person_id' => $person->id]);
             }
             if ($invite->platform_admin) {
                 $user->forceFill(['is_platform_admin' => true])->save();
@@ -167,11 +186,11 @@ final class Invitations
     }
 
     /** @param list<string> $roles */
-    private function issue(string $email, ?int $actor, ?int $lodge, array $roles, bool $platform, bool $bootstrap): Invitation
+    private function issue(string $email, ?int $actor, ?int $lodge, array $roles, bool $platform, bool $bootstrap, ?int $personId = null): Invitation
     {
         Invitation::query()->where('email', $email)->where('lodge_id', $lodge)->whereNull('accepted_at')->whereNull('revoked_at')->update(['revoked_at' => now('UTC')]);
         $token = bin2hex(random_bytes(32));
-        $invite = Invitation::query()->create(['email' => $email, 'invited_by' => $actor, 'lodge_id' => $lodge, 'roles' => $roles, 'platform_admin' => $platform, 'bootstrap' => $bootstrap, 'token_digest' => hash('sha256', $token), 'expires_at' => now('UTC')->addHours(24)]);
+        $invite = Invitation::query()->create(['email' => $email, 'invited_by' => $actor, 'lodge_id' => $lodge, 'roles' => $roles, 'platform_admin' => $platform, 'bootstrap' => $bootstrap, 'person_id' => $personId, 'token_digest' => hash('sha256', $token), 'expires_at' => now('UTC')->addHours(24)]);
         try {
             $this->delivery->send('email', $email, 'Attivazione accesso', 'Hai ricevuto un invito ad accedere al servizio. Per continuare apri: '.route('invitation.show', $token)."\nIl link scade dopo 24 ore. Se non atteso, ignora il messaggio.");
             $invite->delivery_state = 'accepted';

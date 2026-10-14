@@ -15,3 +15,6 @@ La richiesta "FASE 1: MODELLO DATI E STRUTTURA ORGANIZZATIVA" autorizza anticipa
 
 ## Stato dopo richiesta FASE 2
 Identità e isolamento della voce 2 completati per i moduli attuali: Fortify, inviti, ruoli locali, OTP, revoche, recupero, context tenant, export accessi, report accessi e assistenza auditabile. Verifiche in IDENTITY-VERIFICATION.md. La precedente indicazione di login chiuso descrive lo stato storico prima della fase 2. Organizzazione completata; iscrizioni, capitazioni, canoni, tesoreria e report contabili restano esclusi. Fermarsi qui fino a nuova istruzione.
+
+## Stato dopo richiesta FASE 3
+Anagrafiche locali/iscrizioni della voce 3 completate: schede, stati, esenzioni, storico, inviti associati alla persona, CSV e impostazioni loggia. Contabilità non implementata: pagina personale e resolver di proprietà predisposti senza saldi inventati. Le preferenze notifiche/tesoreria non attivano moduli futuri. Fermarsi al modulo Membership; le voci successive richiedono nuova istruzione.

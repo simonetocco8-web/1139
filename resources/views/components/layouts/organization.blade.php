@@ -20,8 +20,15 @@
             <a href="{{ route('assistance') }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">Assistenza</a>
         @endcan
         @php($currentLodge = app(\App\Domains\Organization\Actions\ActiveLodge::class)->current())
+        @if($currentLodge)
+            <a href="{{ route('members.position') }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">La mia posizione</a>
+            @if(app(\App\Domains\Identity\Authorization\TenantAccess::class)->fullRead(\App\Domains\Identity\VerifiedSession::user(), $currentLodge->id))
+                <a href="{{ route('members.index') }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">Fratelli della loggia</a>
+            @endif
+        @endif
         @if($currentLodge && app(\App\Domains\Identity\Authorization\TenantAccess::class)->allows(\App\Domains\Identity\VerifiedSession::user(), $currentLodge->id, 'administration'))
             <a href="{{ route('tenant.access') }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">Accessi della loggia</a>
+            <a href="{{ route('members.settings') }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">Impostazioni loggia</a>
         @endif
         @if($currentLodge && app(\App\Domains\Identity\Authorization\TenantAccess::class)->allows(\App\Domains\Identity\VerifiedSession::user(), $currentLodge->id, 'reports'))
             <a href="{{ route('tenant.report') }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">Report accessi</a>
