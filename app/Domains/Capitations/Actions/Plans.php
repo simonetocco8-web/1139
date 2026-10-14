@@ -104,7 +104,7 @@ final class Plans
 
     private function boundary(Plan $plan, string $date, bool $checkEnd = true): void
     {
-        if (! Calendar::boundary($plan,$date) || ($checkEnd && $plan->ends_on !== null && $date > $plan->ends_on->toDateString())) {
+        if (! Calendar::boundary($plan, $date) || ($checkEnd && $plan->ends_on !== null && $date > $plan->ends_on->toDateString())) {
             throw ValidationException::withMessages(['effective_on' => 'La data deve essere un inizio ciclo valido del piano.']);
         }
     }

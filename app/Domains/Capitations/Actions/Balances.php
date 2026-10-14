@@ -32,6 +32,6 @@ final class Balances
             throw new \LogicException('Credito negativo.');
         }
 
-return $credit;
+        return $credit;
     }
 }

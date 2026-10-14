@@ -30,7 +30,7 @@ final class Access
             $q->where('user_id', VerifiedSession::user()->id);
         }
 
-return $q->firstOrFail();
+        return $q->firstOrFail();
     }
 
     /** @return Builder<Installment> */
@@ -46,6 +46,6 @@ return $q->firstOrFail();
             $q->whereHas('person', fn ($p) => $p->where('user_id', VerifiedSession::user()->id));
         }
 
-        return $q->withSum('corrections','amount')->withSum('allocations','amount');
+        return $q->withSum('corrections', 'amount')->withSum('allocations', 'amount');
     }
 }
