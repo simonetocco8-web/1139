@@ -1,4 +1,4 @@
-# Gestionale Multi-Loggia — fondamenta e organizzazione
+# Gestionale Multi-Loggia — organizzazione, identità e OTP
 
 Fondamenta Laravel 13, Livewire 4, Blade, Tailwind e Fortify. Documenti iniziali redatti prima del codice: ARCHITECTURE.md, DATABASE.md, REQUIREMENTS.md, ROADMAP.md. Modello organizzativo e CRUD realizzati nella richiesta successiva: obbedienze, riti/compatibilità, gerarchie e logge. Nessuna capitazione, canone o tesoreria implementati. Nessun dato personale o account demo.
 
@@ -37,10 +37,18 @@ composer check-platform-reqs
 composer test
 npm run build
 ```
-`composer test` esegue controllo stile Pint, Larastan livello 7 e test Laravel/PHPUnit. Test infrastrutturali su SQLite in memoria; non provano vincoli, lock e concorrenza MySQL. Il resoconto effettivo è in VERIFICATION.md. La CI esegue questi controlli su PHP 8.3 e Node 24, ma non è stata eseguita su GitHub in questa sessione.
+`composer test` esegue controllo stile Pint, Larastan livello 7 e test Laravel/PHPUnit. Test infrastrutturali su SQLite in memoria; non provano vincoli, lock e concorrenza MySQL. Il resoconto effettivo è in VERIFICATION.md. La CI esegue questi controlli su PHP 8.3, Node 24 e MySQL 8. I resoconti delle fasi successive sono in ORGANIZATION-VERIFICATION.md e IDENTITY-VERIFICATION.md.
 
-## Autenticazione deliberatamente chiusa
-Fortify è installato, ma `Fortify::ignoreRoutes()` e features vuote impediscono login, registrazione, reset e gestione credenziali. Le pagine private/componimenti editabili dello starter sono rimossi. Anche una sessione già autenticata non accede a dashboard o impostazioni. Il componente Livewire pubblico espone solo lingua, fuso e valuta. Non riattivare il login standard prima di inviti, OTP email/SMS, revoca, policy e isolamento testati nella fase 2. TOTP/passkey dello starter non sono il secondo canale richiesto.
+## Accesso tramite invito e OTP
+La fase 2 è implementata: Fortify verifica le credenziali, poi invia un OTP al canale verificato. Solo il consumo atomico dell'OTP crea la sessione completa. Registrazione pubblica, TOTP/passkey e login senza OTP restano disabilitati. Nessun account o password demo nel seed.
+
+Configurare SMTP e il gateway SMS seguendo [IDENTITY-CONFIGURATION.md](IDENTITY-CONFIGURATION.md). Per il primo Super User, con SMTP operativo:
+```sh
+php artisan identity:invite-superuser indirizzo-autorizzato@example.invalid
+```
+Sostituire l'indirizzo con quello del destinatario autorizzato: il comando invia un invito, non crea una password né autentica. Gli amministratori locali invitano utenti e assegnano ruoli per la propria loggia. Il Super User non ottiene accesso ai contenuti locali; l'assistenza richiede consenso temporaneo esplicito.
+
+Vedere [IDENTITY.md](IDENTITY.md) per flussi e matrice permessi, [IDENTITY-VERIFICATION.md](IDENTITY-VERIFICATION.md) per test e [schermate](docs/screenshots/identity/README.md). Senza SMTP/SMS configurato l'applicazione segnala il mancato invio; il driver array non invia OTP.
 
 ## Distribuzione cPanel Linux
 1. Verificare PHP 8.3+ e relative estensioni anche nella CLI cron; MySQL 8.x effettivo e HTTPS. Non è stato verificato un hosting specifico.
@@ -48,7 +56,7 @@ Fortify è installato, ma `Fortify::ignoreRoutes()` e features vuote impediscono
 3. Caricare progetto e vendor fuori dalla directory pubblica; includere `public/build`, lockfile e `.env.example`. Escludere `.git`, node_modules, `.env` locale, database.sqlite, log e cache di test. Creare `.env` sul server con APP_ENV=production, APP_DEBUG=false, APP_URL=https://dominio-reale, SESSION_SECURE_COOKIE=true e configurazione reale MySQL/SMTP. Generare una APP_KEY nuova una sola volta; conservarla nei backup, non ruotarla senza migrazione dei dati cifrati.
 4. Impostare document root del dominio su `<progetto>/public`. Non esporre l'intera radice e non spostare tutti i file in public_html. Se il piano non permette document root separata, concordare con il provider una configurazione sicura prima della pubblicazione.
 5. Rendere scrivibili al solo utente PHP `storage` e `bootstrap/cache`; evitare 777. `.env` leggibile solo dall'utente applicativo. I file `storage/app/private` restano fuori dal web root; nessun `storage:link` per allegati riservati.
-6. Eseguire con il PHP corretto `php artisan migrate --force`, `php artisan config:cache`, `php artisan route:cache`, `php artisan view:cache`. Non copiare cache generate in sviluppo. Non eseguire `migrate:fresh` in produzione. Verificare `/` e `/up`, asset e cookie HTTPS; login/registrazione devono restare assenti.
+6. Eseguire con il PHP corretto `php artisan migrate --force`, `php artisan config:cache`, `php artisan route:cache`, `php artisan view:cache`. Non copiare cache generate in sviluppo. Non eseguire `migrate:fresh` in produzione. Verificare `/` e `/up`, asset e cookie HTTPS; verificare invito, login con OTP e assenza di registrazione pubblica.
 7. Configurare cron cPanel, sostituendo i percorsi sotto con quelli reali; `flock` evita sovrapposizioni. Se assente, concordare un lock equivalente; nessun processo residente:
 ```cron
 * * * * * cd /percorso/progetto && /percorso/php artisan schedule:run >> /dev/null 2>&1
@@ -75,13 +83,13 @@ Schermate Livewire implementate (accesso riservato):
 - `/admin/organizzazione/lodges`: ricerca, CRUD/disattivazione, numero per obbedienza, rito compatibile e storico territoriale.
 - `/loggia`: sole logge per cui il soggetto dispone di membership attiva e almeno un ruolo; nessun accesso implicito per amministratori piattaforma.
 
-Il Super User è un flag server-side non mass-assignable, non un ruolo tenant universale. Ogni schermata e richiesta Livewire richiede account autenticato, secondo fattore attestato server-side e autorizzazione. Il login resta chiuso fino alla sua fase dedicata: non ci sono account/password demo, comandi per concedere privilegi, route di anteprima o bypass del secondo fattore distribuiti. I marker di integrazione del futuro OTP sono descritti in ARCHITECTURE.md; vanno cancellati al nuovo login, cambio account, recupero e revoca, ed emessi solo dal verificatore dopo rigenerazione sessione. Non impostarli dal browser o con una route amministrativa.
+Il Super User è un flag server-side non mass-assignable, non un ruolo tenant universale. Ogni schermata e richiesta Livewire richiede account autenticato, secondo fattore attestato server-side e autorizzazione. La fase 2 emette i marker di sessione esclusivamente dopo OTP valido; verifica inoltre session_version ad ogni richiesta. Nessuna route di anteprima o bypass distribuito. Il comando iniziale invia solo l'invito autorizzato, senza concessione diretta di sessione.
 
 Dati dimostrativi completamente fittizi, solo in locale/testing:
 ```sh
 php artisan db:seed --class=OrganizationDemoSeeder
 ```
-Il seeder è idempotente, non crea account ed è vietato in produzione. Il seed predefinito resta vuoto. Lo schema di membership/ruoli predispone solo il selettore; la loro gestione tramite inviti e permessi sarà una fase successiva.
+Il seeder è idempotente, non crea account ed è vietato in produzione. Il seed predefinito resta vuoto. Membership e ruoli locali sono ora gestiti mediante inviti e autorizzazioni della fase 2.
 
 Documenti attuali: ORGANIZATION.md (invarianti/assunzioni), ORGANIZATION-VERIFICATION.md (risultati), DATABASE.md (vincoli). Schermate reali in `docs/screenshots/README.md`, con solo dati fittizi.
 

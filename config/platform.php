@@ -2,5 +2,5 @@
 
 return [
     'currency' => 'EUR',
-    'authentication_available' => false,
+    'authentication_available' => true,
 ];

@@ -2,6 +2,7 @@
 
 namespace App\Domains\Organization\Models;
 
+use App\Domains\Identity\UtcDateTime;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -28,7 +29,7 @@ class TerritorialAssignment extends OrganizationalModel
 
     protected function casts(): array
     {
-        return ['lodge_id' => 'integer', 'obedience_id' => 'integer', 'structure_id' => 'integer', 'starts_at' => 'immutable_datetime', 'ended_at' => 'immutable_datetime'];
+        return ['lodge_id' => 'integer', 'obedience_id' => 'integer', 'structure_id' => 'integer', 'starts_at' => UtcDateTime::class, 'ended_at' => UtcDateTime::class];
     }
 
     /** @return BelongsTo<Structure, $this> */

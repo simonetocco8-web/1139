@@ -13,3 +13,5 @@ Route::middleware(RequireVerifiedSession::class)->group(function (): void {
         ->middleware('can:manage-organization')->name('organization.index');
     Route::livewire('/loggia', LodgeSelector::class)->name('lodge.select');
 });
+
+require __DIR__.'/identity.php';

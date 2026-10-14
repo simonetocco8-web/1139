@@ -12,3 +12,6 @@ Le fasi 2–7 richiedono una nuova istruzione: non avviarle autonomamente.
 
 ## Aggiornamento della sequenza autorizzata
 La richiesta "FASE 1: MODELLO DATI E STRUTTURA ORGANIZZATIVA" autorizza anticipatamente la parte organizzativa della voce 3 e la sola predisposizione del selettore (membership/ruoli), senza realizzare la voce 2. Login/inviti/OTP restano chiusi, nessun modulo di iscrizioni o contabilità implementato. Fermarsi alla consegna organizzativa; le altre voci continuano a richiedere una nuova istruzione.
+
+## Stato dopo richiesta FASE 2
+Identità e isolamento della voce 2 completati per i moduli attuali: Fortify, inviti, ruoli locali, OTP, revoche, recupero, context tenant, export accessi, report accessi e assistenza auditabile. Verifiche in IDENTITY-VERIFICATION.md. La precedente indicazione di login chiuso descrive lo stato storico prima della fase 2. Organizzazione completata; iscrizioni, capitazioni, canoni, tesoreria e report contabili restano esclusi. Fermarsi qui fino a nuova istruzione.

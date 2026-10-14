@@ -2,6 +2,10 @@
 
 namespace App\Providers;
 
+use App\Domains\Identity\Delivery\CodeTransport;
+use App\Domains\Identity\Delivery\FakeTransport;
+use App\Domains\Identity\Delivery\TechnicalDelivery;
+use App\Domains\Identity\VerifiedSession;
 use App\Domains\Organization\Actions\OrganizationActions;
 use App\Domains\Organization\Policies\OrganizationPolicy;
 use App\Http\Middleware\RequireVerifiedSession;
@@ -10,6 +14,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Livewire\Livewire;
@@ -21,7 +26,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(FakeTransport::class);
+        $this->app->singleton(CodeTransport::class, TechnicalDelivery::class);
     }
 
     /**
@@ -30,8 +36,15 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        URL::forceRootUrl((string) config('app.url'));
+        if (app()->isProduction()) {
+            URL::forceScheme('https');
+        }
+        if (app()->isProduction()) {
+            config(['app.debug' => false, 'session.secure' => true, 'session.http_only' => true, 'session.same_site' => 'lax']);
+        }
         Livewire::addPersistentMiddleware([RequireVerifiedSession::class]);
-        Gate::define('manage-organization', fn (User $user) => $user->is_platform_admin);
+        Gate::define('manage-organization', fn (User $user) => VerifiedSession::user()->is_platform_admin);
         foreach (OrganizationActions::MODELS as $class) {
             Gate::policy($class, OrganizationPolicy::class);
         }

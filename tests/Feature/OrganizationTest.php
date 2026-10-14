@@ -48,7 +48,8 @@ class OrganizationTest extends TestCase
     {
         $this->actingAs($user);
         session()->put('auth.second_factor_user_id', $user->id);
-        session()->put('auth.second_factor_verified_at', time());
+        session()->put('auth.second_factor_verified_at', now('UTC')->getTimestamp());
+        session()->put('auth.session_version', $user->session_version);
     }
 
     /** @param array<string, mixed> $extra */
@@ -138,6 +139,7 @@ class OrganizationTest extends TestCase
         $lodge = $this->lodge(['structure_ids' => [$first->id]]);
         $old = $lodge->currentAssignments()->first();
         $this->travel(1)->days();
+        $this->verify($this->admin);
         $this->actions->save('lodges', array_replace($lodge->toArray(), ['structure_ids' => [$second->id]]), $lodge->id);
         $this->actions->save('structures', array_replace($first->toArray(), ['name' => 'Struttura Fittizia Rinominata']), $first->id);
         $this->actions->setActive('structures', $first->id, false);
@@ -287,7 +289,8 @@ class OrganizationTest extends TestCase
     {
         session()->forget('auth.second_factor_verified_at');
         $this->get('/admin/organizzazione/obediences')->assertForbidden();
-        session()->put('auth.second_factor_verified_at', time());
+        session()->put('auth.second_factor_verified_at', now('UTC')->getTimestamp());
+        $this->verify($this->admin);
         session()->put('auth.second_factor_user_id', $this->admin->id + 1);
         $this->get('/admin/organizzazione/obediences')->assertForbidden();
         auth()->logout();

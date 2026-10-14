@@ -1,10 +1,13 @@
 <?php
 
 use App\Http\Middleware\PrivacyHeaders;
+use App\Http\Middleware\RequireSecureTransport;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -18,8 +21,16 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(PrivacyHeaders::class);
+        $middleware->redirectUsersTo('/dashboard');
+        $middleware->web(append: [RequireSecureTransport::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->report(function (QueryException $error): bool {
+            Log::error('Operazione di persistenza non completata.', ['sql_state' => $error->errorInfo[0] ?? 'unknown']);
+
+            return false;
+        });
+        $exceptions->dontFlash(['password', 'password_confirmation', 'code', 'recovery_code', 'token', 'target']);
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );

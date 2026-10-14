@@ -1,6 +1,6 @@
 # Requisiti e criteri di accettazione
 
-Fonte: richiesta allegata «CODEX — Progetto Gestionale Multi-Loggia». Fondamenta completate; nuova richiesta del 14 ottobre 2026 autorizza la sola fase modello dati e organizzazione.
+Fonte: richiesta allegata «CODEX — Progetto Gestionale Multi-Loggia». Fondamenta completate; le richieste successive autorizzano organizzazione e FASE 2 utenti, permessi e OTP.
 
 ## Fase 1
 - Verifica repository, PHP >=8.3, Composer, estensioni e compatibilità Laravel 13/Livewire 4.
@@ -12,7 +12,7 @@ Fonte: richiesta allegata «CODEX — Progetto Gestionale Multi-Loggia». Fondam
 - Route health neutra e test per stato, rendering, assenza endpoint registrazione e chiusura area privata/Livewire.
 - README con sviluppo, build, deploy cPanel, cron e limiti; elenco verifiche e problemi reali.
 
-## Fasi successive, non implementate
+## Ambito futuro
 Organizzazione gerarchica facoltativa e non ciclica; iscritti distinti dagli account; inviti e ruoli multipli per loggia; Super User solo amministrazione globale, assistenza autorizzata auditabile; tenant scoping fail-closed per query/file/export/job. OTP email/SMS sicuro, recupero e revoca. Capitazioni con periodicità, esenzioni, riduzioni, anticipi, parziali e arretrati. Canoni per sovrastrutture anche pro capite. Tesoreria indipendente con conti/casse, saldi iniziali, incassi/spese, giroconti, storni immutabili, allegati privati. Report e privacy.
 
 ## Assunzioni e decisioni aperte
@@ -24,4 +24,8 @@ WCAG 2.2 AA obiettivo (audit completo futuro); mobile-first, navigazione desktop
 ## Fase organizzativa (richiesta successiva)
 Implementati CRUD con disattivazione per obbedienze, riti, strutture, logge e associazioni rito/obbedienza. Numero univoco nella propria obbedienza; gerarchie coerenti, non cicliche e con livelli intermedi opzionali; vincoli MySQL 8 e relazioni Eloquent. Collegamenti territoriali versionati, cancellazioni distruttive escluse e protette da FK quando collegate. Selettore loggia per sole membership/ruoli autorizzati; nessun accesso tenant implicito al Super User. Dati demo fittizi con seeder esplicito, senza account. Test SQLite e MySQL, schermate desktop/mobile in docs/screenshots.
 
-Il login, gli inviti, l'invio OTP e la gestione utenti restano fuori scope: le schermate richiedono una sessione già verificata e non sono accessibili pubblicamente. Non procedere a capitazioni, canoni, tesoreria o altre fasi.
+La chiusura iniziale dell’autenticazione è superata dalla fase 2 descritta sotto. Non procedere a capitazioni, canoni, tesoreria o altre fasi.
+
+## Fase 2 completata
+Inviti senza registrazione pubblica, Fortify password + OTP verificato email/SMS, digest server, 6 cifre CSPRNG, 5 minuti, un uso, 5 tentativi, 60 secondi fra reinvii, limiti account/IP e invalidazione precedente. Driver fake solo test; configurazione mancante mai dichiarata come invio riuscito. Recupero password senza login, cambio recapito con password e OTP recente più verifica del nuovo contatto, revoca versionata e recupero fattore con codice offline monouso e nuovo OTP.
+Ruoli locali multipli e permessi lettura/creazione/modifica/storno/export/amministrazione/report. Protezioni server-side, Livewire, tenant switch ed export. Super User separato dai contenuti; assistenza esplicita con approvazione, scadenza, revoca e audit. Test SQLite/MySQL, incluso consumo concorrente OTP; schermate desktop/mobile fittizie. Dettagli e limiti in IDENTITY.md e IDENTITY-VERIFICATION.md. Nessun modulo contabile o anagrafico aggiunto.

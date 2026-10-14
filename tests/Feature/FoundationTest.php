@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use Laravel\Fortify\Features;
 use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -19,7 +20,7 @@ class FoundationTest extends TestCase
     {
         $this->get('/')
             ->assertOk()
-            ->assertSee('Accesso non ancora disponibile')
+            ->assertSee('Accesso tramite invito')
             ->assertSee('lang="it"', false)
             ->assertSeeLivewire(FoundationStatus::class)
             ->assertHeader('X-Robots-Tag', 'noindex, nofollow, noarchive')
@@ -41,7 +42,7 @@ class FoundationTest extends TestCase
     public static function closedPaths(): array
     {
         return array_combine(
-            $paths = ['/register', '/login', '/forgot-password', '/reset-password/example', '/two-factor-challenge', '/dashboard', '/settings/profile', '/settings/security', '/user/password', '/user/two-factor-authentication'],
+            $paths = ['/register', '/two-factor-challenge', '/settings/profile', '/settings/security', '/user/password', '/user/two-factor-authentication'],
             array_map(fn (string $path) => [$path], $paths),
         );
     }
@@ -57,10 +58,11 @@ class FoundationTest extends TestCase
 
     public function test_no_fortify_route_or_registration_feature_is_available(): void
     {
-        $this->assertFalse(Route::has('login'));
+        $this->assertTrue(Route::has('login'));
+        $this->assertFalse(Features::enabled(Features::registration()));
         $this->assertFalse(Route::has('register'));
-        $this->assertSame([], config('fortify.features'));
-        $this->assertFalse(config('platform.authentication_available'));
+        $this->assertFalse(Features::enabled(Features::twoFactorAuthentication()));
+        $this->assertTrue(config('platform.authentication_available'));
     }
 
     public function test_public_livewire_component_contains_only_basic_settings(): void
