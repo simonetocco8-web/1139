@@ -1,6 +1,7 @@
 @extends('membership.page')
 @section('title', $person->last_name.' '.$person->first_name)
 @section('content')
+<a href="{{ route('capitations.person',[$lodge->id,$person->id]) }}" class="mb-5 inline-flex min-h-12 items-center rounded-xl border border-teal-700 px-4 font-semibold text-teal-900">Situazione debitoria capitazioni</a>
 @php($admin = app(\App\Domains\Identity\Authorization\TenantAccess::class)->allows(\App\Domains\Identity\VerifiedSession::user(), $lodge->id, 'administration'))
 <section class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-7"><h2 class="mb-4 text-xl font-semibold">Anagrafica locale</h2>
 @if($admin)<form method="POST" action="{{ route('members.update', [$lodge->id, $person->id]) }}">@csrf<input type="hidden" name="version" value="{{ $person->version }}">@include('membership.person-fields')@include('membership.confirmation')<button class="min-h-12 rounded-xl bg-teal-800 px-5 font-semibold text-white">Salva anagrafica</button></form>

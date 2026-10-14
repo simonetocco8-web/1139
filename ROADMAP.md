@@ -18,3 +18,6 @@ Identità e isolamento della voce 2 completati per i moduli attuali: Fortify, in
 
 ## Stato dopo richiesta FASE 3
 Anagrafiche locali/iscrizioni della voce 3 completate: schede, stati, esenzioni, storico, inviti associati alla persona, CSV e impostazioni loggia. Contabilità non implementata: pagina personale e resolver di proprietà predisposti senza saldi inventati. Le preferenze notifiche/tesoreria non attivano moduli futuri. Fermarsi al modulo Membership; le voci successive richiedono nuova istruzione.
+
+## Stato dopo richiesta FASE 4
+Capitazioni completate: calendario, piani/versioni, condizioni personali, snapshot, generazione automatica/idempotente, rettifiche e report/personale. Servizi di pagamenti/credito/imputazioni collegati al contratto transazionale Treasury, con adapter reale indisponibile fino alla fase Tesoreria. Nessun sistema finanziario parallelo; nessun incasso reale o simulato nel seed. Le indicazioni precedenti di contabilità esclusa descrivono le rispettive fasi storiche. Fermarsi qui; canoni e Tesoreria richiedono una nuova istruzione.

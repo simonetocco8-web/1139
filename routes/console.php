@@ -10,3 +10,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('model:prune', ['--model' => ImportBatch::class])->hourly()->withoutOverlapping();
+
+Schedule::command('capitation:generate')->dailyAt('01:15')->withoutOverlapping();

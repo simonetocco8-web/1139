@@ -59,3 +59,16 @@ Migrazione `2026_10_14_180000_create_membership_tables.php`:
 - lodges: administrative_email, reminder_days (0–30 validato), brothers_treasury_visible default false; i campi organizzativi e bancari non sono modificabili dal controller impostazioni locali.
 
 Il progetto members di fase iniziale è ora separato in member_people e member_enrollments. Non ci sono tabelle finanziarie: i futuri legami devono preservare gli ID storici e adottare FK composite sul tenant. Rollback fase 3 distruttivo per il modulo, solo su test/restore controllato. Dati demo fittizi senza account.
+
+## Fase 4 — schema capitazioni effettivo
+`2026_10_14_190000_create_capitation_tables.php` installa:
+- capitation_plans: tenant, descrizione, periodicità, inizio/fine DATE locali; identità/calendario immutabili.
+- capitation_plan_versions: FK composita piano/tenant, decorrenza univoca per piano, importo DECIMAL(15,2), descrizione, due_basis/due_days, prorata e is_active; append-only.
+- capitation_person_rules: FK piano/tenant e persona/tenant, decorrenza/fine DATE, kind standard/exempt/discount/custom, punti base o importo, motivazione cifrata; versione unica per persona/piano/ciclo.
+- capitation_installments: FK composite tenant/piano/persona/iscrizione; UNIQUE(tenant,piano,persona,period_start), periodo/scadenza DATE, original_amount DECIMAL(15,2) e snapshot JSON della versione/condizione/intervalli. Indici scadenzario e chiavi composite tenant/persona/id. Nuovo indice di proprietà su member_enrollments per FK del primo intervallo usato.
+- capitation_corrections: FK rata/tenant, variazione DECIMAL firmata, motivo cifrato, attore, chiave idempotente/digest. Non si cambia original_amount.
+- capitation_receipts: FK persona/tenant, importo positivo DECIMAL, received_on DATE, riferimento/etichetta conto e riferimento movimento unico per tenant, chiave idempotente/digest. Nessuna ricevuta senza conferma del gateway condiviso; nessun conto o movimento di cassa qui.
+- capitation_allocation_batches: ricevuta/tenant FK, chiave/digest idempotenti; protegge ripetizione dell'intero riparto.
+- capitation_allocations: FK composite rata e ricevuta con stessa persona/tenant, DECIMAL firmato, reversal opzionale collegato univocamente, motivo cifrato/attore. Alloca solo entro credito e residuo; annullamento con riga inversa, mai delete.
+
+Timestamp tecnici UTC a microsecondi; DATE locali tramite CalendarDate. MySQL CHECK su quote positive, giorni scadenza 0–60, tipi/parametri condizioni, rate non negative/intervalli, ricevute positive e imputazioni non nulle. FK RESTRICT; modelli immutabili. Dovuto/versato/residuo/credito derivati da righe originali e rettifiche/imputazioni, mai saldi modificabili. Le vecchie tabelle progettuali receivables/capitation_plans non sono nomi effettivi di questa fase; canoni/tesoreria restano futuri.

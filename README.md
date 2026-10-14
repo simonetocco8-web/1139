@@ -1,6 +1,6 @@
-# Gestionale Multi-Loggia — organizzazione, identità e anagrafiche
+# Gestionale Multi-Loggia — organizzazione, identità e capitazioni
 
-Fondamenta Laravel 13, Livewire 4, Blade, Tailwind e Fortify. Documenti iniziali redatti prima del codice: ARCHITECTURE.md, DATABASE.md, REQUIREMENTS.md, ROADMAP.md. Modello organizzativo e CRUD realizzati nella richiesta successiva: obbedienze, riti/compatibilità, gerarchie e logge. Fase 3: persone locali, iscrizioni e storico, importazione CSV e impostazioni loggia. Nessuna capitazione, canone o tesoreria implementati. Solo dati dimostrativi fittizi, nessun account demo nel seed.
+Fondamenta Laravel 13, Livewire 4, Blade, Tailwind e Fortify. Documenti iniziali redatti prima del codice: ARCHITECTURE.md, DATABASE.md, REQUIREMENTS.md, ROADMAP.md. Modello organizzativo e CRUD realizzati nella richiesta successiva: obbedienze, riti/compatibilità, gerarchie e logge. Fase 3: persone locali, iscrizioni e storico, importazione CSV e impostazioni loggia. Capitazioni implementate nella fase 4; canoni e Tesoreria non implementati. Solo dati dimostrativi fittizi, nessun account demo nel seed.
 
 ## Prerequisiti
 PHP 8.3+ (CLI e web della stessa versione), Composer 2, estensioni ctype, curl, dom/XML, fileinfo, filter, hash, mbstring, openssl, PDO/pdo_mysql, session, tokenizer, zip. MySQL 8.x InnoDB/utf8mb4. Node 22.12+ o 24 LTS soltanto sulla macchina di build. Il lock Composer è risolto con platform.php=8.3.0, anche se in questa sessione si esegue PHP 8.4.26; `composer check-platform-reqs` verifica l'ambiente reale. PHPUnit 11 mantiene la compatibilità di sviluppo PHP 8.3.
@@ -118,3 +118,25 @@ php artisan db:seed --class=MembershipDemoSeeder
 Nove persone completamente fittizie in tre logge demo, stati attivo/sospeso/concluso; seeder idempotente, vietato in produzione. Il seed predefinito resta vuoto. Le anteprime CSV sono cifrate, scadono in 15 minuti e vengono rimosse da `model:prune` ogni ora tramite il cron scheduler già documentato. Dopo conferma i dati del payload sono subito svuotati. Mantenere APP_KEY nei backup protetti.
 
 [Modello e assunzioni](MEMBERSHIP.md), [verifiche](MEMBERSHIP-VERIFICATION.md), [schermate desktop/mobile](docs/screenshots/membership/README.md). Fermarsi qui: contabilità, notifiche operative e report economici sono fasi future.
+
+## Fase 4 — capitazioni periodiche
+Migrazione `2026_10_14_190000_create_capitation_tables.php`: piani/versioni, condizioni individuali, rate immutabili, rettifiche, ricevute collegate al gateway Tesoreria, batch e imputazioni. Backup e restore prima di `php artisan migrate --force`; rollback distruttivo solo su test o restore controllato. Nessuna nuova dipendenza Composer/npm; includere public/build aggiornato.
+
+- `/loggia/capitazioni`: piani mensili/trimestrali/semestrali/annuali, scadenza/prorata espliciti, versioni economiche future, stato attivo/inattivo e generazione idempotente.
+- `/loggia/capitazioni/scadenze`, `/morosi`, `/riepilogo`: scadenzario, morosi raggruppati per persona e riepilogo delle competenze selezionate.
+- `/logge/{lodge}/capitazioni/fratelli/{person}`: situazione individuale, condizioni personali, rettifiche, storico versamenti, credito e imputazioni su più rate.
+- `/loggia/capitazioni/personale`: prospetto protetto delle proprie rate/versamenti/credito nella loggia attiva. La pagina iscrizioni della fase 3 ora rimanda qui.
+
+Generazione automatica giornaliera alle 01:15 Europe/Rome mediante cron scheduler esistente; ripetibile manualmente:
+```sh
+php artisan capitation:generate
+```
+L'operazione genera soltanto rate, senza registrare entrate. Quote e condizioni già maturate non sono sovrascritte. Nuove versioni da cicli futuri, esenzioni/sconti/importi personali, rettifiche motivate; dettaglio in [CAPITATIONS.md](CAPITATIONS.md).
+
+**Tesoreria assente:** gli incassi effettivi sono disabilitati e non simulati. ReceiptGateway è il contratto transazionale condiviso da implementare nella fase Tesoreria; il modulo non crea conti, casse o movimenti paralleli. Pagamenti parziali, riparto su più rate, credito e annullamento delle imputazioni sono realizzati nel servizio e verificati con adapter di test sulla stessa connessione/transazione. L'uso successivo del credito non richiama il gateway né crea una seconda entrata.
+
+Dati completamente fittizi e idempotenti, nessun account/incasso/messaggio:
+```sh
+php artisan db:seed --class=CapitationDemoSeeder
+```
+Solo locale/testing. Conservare APP_KEY nei backup per motivazioni cifrate. [Verifiche fase 4](CAPITATIONS-VERIFICATION.md) e [schermate](docs/screenshots/capitations/README.md). Fermarsi qui: nessun canone o modulo Tesoreria avviato.
