@@ -32,7 +32,9 @@ final class VerifiedSession
     public static function recent(): User
     {
         $user = self::user();
-        abort_unless(session('auth.second_factor_verified_at') > now('UTC')->getTimestamp() - 300, 403, 'Per questa operazione accedi nuovamente e verifica il secondo fattore.');
+        if (session('auth.second_factor_verified_at') <= now('UTC')->getTimestamp() - 300) {
+            throw new RecentVerificationRequired;
+        }
 
         return $user;
     }

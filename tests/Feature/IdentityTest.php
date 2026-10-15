@@ -22,6 +22,7 @@ use App\Domains\Organization\Models\Lodge;
 use App\Domains\Organization\Models\Obedience;
 use App\Domains\Organization\Models\Rite;
 use App\Livewire\Identity\AccessManager;
+use App\Livewire\Identity\PlatformInvites;
 use App\Livewire\Identity\Security;
 use App\Livewire\Organization\Manager;
 use App\Models\User;
@@ -459,6 +460,45 @@ class IdentityTest extends TestCase
             $this->assertSame(403, $e->getStatusCode());
         }
         app(Invitations::class)->lodge($lodge->id, 'localadmin@example.invalid', ['administrator'], bootstrap: true);
+        $this->assertFalse(app(TenantAccess::class)->allows($super, $lodge->id, 'read'));
+    }
+
+    public function test_stale_platform_invite_shows_reauthentication_in_page_without_sending(): void
+    {
+        $super = User::factory()->create(['is_platform_admin' => true]);
+        $this->verified($super);
+        session()->put('auth.second_factor_verified_at', now('UTC')->subMinutes(6)->getTimestamp());
+        Livewire::test(PlatformInvites::class)
+            ->set('email', 'new-platform@example.invalid')
+            ->call('invitePlatform')
+            ->assertHasErrors('reauthentication')
+            ->assertSee('Esci e verifica nuovamente')
+            ->assertSet('email', 'new-platform@example.invalid');
+        $this->assertAuthenticatedAs($super);
+        $this->assertDatabaseCount('identity_invitations', 0);
+        $this->assertCount(0, $this->fake->messages);
+    }
+
+    public function test_first_lodge_admin_invite_requires_recent_factor_and_succeeds_after_new_verification(): void
+    {
+        $super = User::factory()->create(['is_platform_admin' => true]);
+        $lodge = $this->lodge('RECENT_INVITE');
+        $this->verified($super);
+        session()->put('auth.second_factor_verified_at', now('UTC')->subMinutes(5)->getTimestamp());
+        $component = Livewire::test(PlatformInvites::class)
+            ->set('email', 'initial-admin@example.invalid')
+            ->set('targetLodge', $lodge->id)
+            ->call('inviteInitialAdministrator')
+            ->assertHasErrors('reauthentication')
+            ->assertSee('Esci e verifica nuovamente')
+            ->assertSet('email', 'initial-admin@example.invalid')
+            ->assertSet('targetLodge', $lodge->id);
+        $this->assertDatabaseCount('identity_invitations', 0);
+        $this->assertCount(0, $this->fake->messages);
+        $this->verified($super);
+        $component->call('inviteInitialAdministrator')->assertHasNoErrors();
+        $this->assertDatabaseHas('identity_invitations', ['email' => 'initial-admin@example.invalid', 'lodge_id' => $lodge->id, 'bootstrap' => true, 'delivery_state' => 'accepted']);
+        $this->assertCount(1, $this->fake->messages);
         $this->assertFalse(app(TenantAccess::class)->allows($super, $lodge->id, 'read'));
     }
 

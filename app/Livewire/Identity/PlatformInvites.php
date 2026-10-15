@@ -4,6 +4,7 @@ namespace App\Livewire\Identity;
 
 use App\Domains\Identity\Actions\Invitations;
 use App\Domains\Identity\Delivery\DeliveryUnavailable;
+use App\Domains\Identity\RecentVerificationRequired;
 use App\Domains\Identity\VerifiedSession;
 use App\Domains\Organization\Models\Lodge;
 use Illuminate\Contracts\View\View;
@@ -24,6 +25,10 @@ class PlatformInvites extends Component
     {
         try {
             $invites->platform($this->email);
+        } catch (RecentVerificationRequired $e) {
+            $this->addError('reauthentication', $e->getMessage());
+
+            return;
         } catch (DeliveryUnavailable $e) {
             $this->addError('email', $e->getMessage());
 
@@ -38,6 +43,10 @@ class PlatformInvites extends Component
         abort_if($this->targetLodge === null, 422);
         try {
             $invites->lodge($this->targetLodge, $this->email, ['administrator'], bootstrap: true);
+        } catch (RecentVerificationRequired $e) {
+            $this->addError('reauthentication', $e->getMessage());
+
+            return;
         } catch (DeliveryUnavailable $e) {
             $this->addError('email', $e->getMessage());
 
