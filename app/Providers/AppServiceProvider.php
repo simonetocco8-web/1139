@@ -30,6 +30,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $public = config('app.public_path');
+        if ($public !== null && $public !== '') {
+            if (! is_string($public) || ! str_starts_with($public, '/')) {
+                throw new \LogicException('APP_PUBLIC_PATH deve essere un percorso assoluto.');
+            }
+            $this->app->usePublicPath($public);
+        }
         $this->app->singleton(ReceiptGateway::class, LedgerReceiptGateway::class);
         $this->app->singleton(DisbursementGateway::class, LedgerDisbursementGateway::class);
         $this->app->singleton(FakeTransport::class);

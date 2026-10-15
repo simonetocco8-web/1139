@@ -1,3 +1,9 @@
+# Never expose hidden or operational files, including on an alternative cPanel public root.
+Options -Indexes
+<FilesMatch "(^\.|\.(env|ini|log|sql|bak|mlb|key)$)">
+    Require all denied
+</FilesMatch>
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes

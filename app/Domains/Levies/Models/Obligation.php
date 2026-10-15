@@ -17,7 +17,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable $reference_on
  * @property CarbonImmutable $due_on
  * @property string $amount
- * @property string|null $payments_sum_amount */
+ * @property string|null $payments_sum_amount
+ * @property array<string,mixed> $snapshot */
 class Obligation extends ImmutableRecord
 {
     protected $table = 'levy_obligations';

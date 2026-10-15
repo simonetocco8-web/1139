@@ -36,3 +36,10 @@ yarn-error.log
 /boost.json
 /opencode.json
 /opencode.jsonc
+
+# Backup e credenziali operative non sono artefatti del repository.
+*.mlb
+*.mlb.partial
+backup-secret.key
+backup-db-*
+mysql-client.cnf

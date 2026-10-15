@@ -23,16 +23,20 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: pdo_mysql, pdo_sqlite, mbstring, xml, curl, zip
+          extensions: pdo_mysql, pdo_sqlite, mbstring, xml, curl, zip, sodium
           tools: composer:v2
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: npm
       - run: composer install --no-interaction --prefer-dist
+      - run: composer audit --locked
       - run: cp .env.example .env && php artisan key:generate
       - run: npm ci && npm run build
+      - run: npm audit --audit-level=low
       - run: composer test
+      - name: Client MySQL per prova backup e ripristino
+        run: command -v mysqldump && command -v mysql || (sudo apt-get update && sudo apt-get install -y mysql-client)
       - name: Test MySQL 8 (database dedicato)
         env:
           DB_CONNECTION: mysql

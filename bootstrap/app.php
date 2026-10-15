@@ -30,6 +30,14 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return false;
         });
+        $exceptions->report(function (Throwable $error): ?bool {
+            if (! app()->isProduction()) {
+                return null;
+            }
+            Log::error('Errore applicativo. Consultare il registro tecnico autorizzato.', ['exception_class' => $error::class]);
+
+            return false;
+        });
         $exceptions->dontFlash(['password', 'password_confirmation', 'code', 'recovery_code', 'token', 'target']);
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),

@@ -18,7 +18,8 @@ final class TechnicalDelivery implements CodeTransport
             return false;
         }
         if ($channel === 'email') {
-            return (! app()->isProduction() || config('mail.mailers.smtp.scheme') === 'smtps' || config('mail.mailers.smtp.require_tls') === true)
+            return (! app()->isProduction() || empty(config('mail.mailers.smtp.url')))
+                && (! app()->isProduction() || config('mail.mailers.smtp.scheme') === 'smtps' || config('mail.mailers.smtp.require_tls') === true)
                 && config('mail.default') === 'smtp'
                 && is_string(config('mail.mailers.smtp.host')) && config('mail.mailers.smtp.host') !== ''
                 && is_string(config('mail.from.address')) && config('mail.from.address') !== '';
@@ -48,7 +49,7 @@ final class TechnicalDelivery implements CodeTransport
 
             return;
         }
-        $response = Http::withToken((string) config('identity.sms.token'))->acceptJson()->timeout(10)
+        $response = Http::withToken((string) config('identity.sms.token'))->acceptJson()->withoutRedirecting()->timeout(10)
             ->post((string) config('identity.sms.endpoint'), ['to' => $destination, 'text' => $body, 'sender' => config('identity.sms.sender')]);
         if (! $response->successful() || $response->json('accepted') !== true) {
             throw new DeliveryUnavailable('Il provider non ha accettato il messaggio.');

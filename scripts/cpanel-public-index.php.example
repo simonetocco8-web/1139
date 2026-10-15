@@ -1,0 +1,14 @@
+<?php
+
+// Install ONLY in the public web directory when cPanel cannot change the document root.
+// Replace this absolute path; never copy the application or .env into public_html.
+$applicationRoot = '/home/CPANELUSER/apps/multi-loggia/current';
+
+define('LARAVEL_START', microtime(true));
+if (file_exists($maintenance = $applicationRoot.'/storage/framework/maintenance.php')) {
+    require $maintenance;
+}
+require $applicationRoot.'/vendor/autoload.php';
+$app = require_once $applicationRoot.'/bootstrap/app.php';
+$app->usePublicPath(__DIR__);
+$app->handleRequest(Illuminate\Http\Request::capture());

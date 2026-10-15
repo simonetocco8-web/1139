@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Validator;
 
 class GenerateLevies extends Command
 {
-    protected $signature = 'levy:generate {--lodge=} {--through=}';
+    protected $signature = 'levy:generate {--queued : Accoda job su database} {--lodge=} {--through=}';
 
     protected $description = 'Genera obblighi canoni idempotenti senza movimenti finanziari';
 
@@ -28,7 +28,16 @@ class GenerateLevies extends Command
         }
         $count = 0;
         foreach ($q->cursor() as $lodge) {
-            $count += $generator->run($lodge->id, $date);
+            if ($this->option('queued')) {
+                \App\Jobs\GenerateLevies::dispatch($lodge->id, $date)->onConnection('database');
+            } else {
+                $count += $generator->run($lodge->id, $date);
+            }
+        }
+        if ($this->option('queued')) {
+            $this->info('Generazione accodata per le logge selezionate. Nessun movimento finanziario.');
+
+            return self::SUCCESS;
         }
         $this->info('Obblighi generati: '.$count.'. Nessuna uscita finanziaria.');
 

@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Validator;
 
 class GenerateCapitations extends Command
 {
-    protected $signature = 'capitation:generate {--lodge= : ID loggia facoltativo} {--through= : Data limite AAAA-MM-GG, mai futura}';
+    protected $signature = 'capitation:generate {--queued : Accoda job su database} {--lodge= : ID loggia facoltativo} {--through= : Data limite AAAA-MM-GG, mai futura}';
 
     protected $description = 'Genera rate maturate in modo idempotente, senza incassi o movimenti';
 
@@ -33,7 +33,16 @@ class GenerateCapitations extends Command
         }
         $count = 0;
         foreach ($query->orderBy('id')->cursor() as $lodge) {
-            $count += $generator->run($lodge->id, $through);
+            if ($this->option('queued')) {
+                \App\Jobs\GenerateCapitations::dispatch($lodge->id, $through)->onConnection('database');
+            } else {
+                $count += $generator->run($lodge->id, $through);
+            }
+        }
+        if ($this->option('queued')) {
+            $this->info('Generazione accodata per le logge selezionate. Nessun movimento finanziario.');
+
+            return self::SUCCESS;
         }
         $this->info('Rate create: '.$count.'. Nessun incasso registrato.');
 

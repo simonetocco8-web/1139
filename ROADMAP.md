@@ -31,3 +31,7 @@ Tesoreria completata con operazioni/righe bilanciate, adapter reali, saldi e sto
 
 ## Stato dopo la fase 7 autorizzata
 Dashboard e report gestionali completati usando i moduli esistenti: separazione ruoli, tenant e dati personali, CSV/PDF privati, filtri e mobile, controllo tecnico scheduler verificabile. Test economici, autorizzazioni e snapshot concorrente MySQL; dettagli in REPORTS-VERIFICATION.md. La richiesta fase 7 autorizza dashboard/report, non le altre attività privacy/rilascio raccolte nella voce 7 iniziale: retention, anonimizzazione, restore operativo, audit indipendente e collaudo hosting restano da affrontare con istruzioni specifiche. Fermarsi qui.
+
+
+## Stato dopo la fase 8 autorizzata
+Completati nel codice notifiche, hardening e strumenti/documenti di deploy richiesti; dati/servizi esterni non simulati. Verifiche in OPERATIONS-VERIFICATION.md. Prima dei dati reali rimangono gli adempimenti del titolare e i collaudi dell'hosting/provider/copia esterna e recupero, come da ACCEPTANCE-CHECKLIST.md. La revisione locale non sostituisce pentest indipendente o sign-off: non dichiarare produzione con rischi critici di sicurezza, tenant o tesoreria. Non avviata una fase ulteriore.

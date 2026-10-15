@@ -13,6 +13,7 @@
         <nav id="app-navigation" aria-label="Amministrazione" class="mt-6 hidden flex-wrap gap-2 lg:flex lg:flex-col"><a href="{{ route('dashboard') }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">Dashboard</a>
         <a href="{{ route('account.security') }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">Sicurezza account</a>
         @can('manage-organization')
+        <a href="{{ route('communications.platform') }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">Notifiche piattaforma</a>
             @foreach(['obediences' => 'Obbedienze', 'rites' => 'Riti', 'structures' => 'Sovrastrutture', 'lodges' => 'Logge'] as $key => $label)
                 <a href="{{ route('organization.index', $key) }}" @if(request()->route('kind') === $key) aria-current="page" @endif class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold hover:bg-teal-50 focus-visible:outline-2 focus-visible:outline-teal-700 {{ request()->route('kind') === $key ? 'bg-teal-50 text-teal-900' : 'text-slate-700' }}">{{ $label }}</a>
             @endforeach
@@ -22,6 +23,8 @@
         @endcan
         @php($currentLodge = app(\App\Domains\Organization\Actions\ActiveLodge::class)->current())
         @if($currentLodge)
+            <a href="{{ route('privacy.index',$currentLodge->id) }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">Dati personali e privacy</a>
+            <a href="{{ route('communications.index',$currentLodge->id) }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">Notifiche</a>
             <a href="{{ route('reports.dashboard',$currentLodge->id) }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">Panoramica loggia</a>
             @if(\App\Domains\Organization\Models\Lodge::query()->whereKey($currentLodge->id)->where('brothers_treasury_visible',true)->exists())<a href="{{ route('treasury.summary') }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">Riepilogo Tesoreria</a>@endif
             <a href="{{ route('capitations.personal') }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">Il mio prospetto capitazioni</a>

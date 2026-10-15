@@ -25,3 +25,7 @@ require __DIR__.'/levies.php';
 require __DIR__.'/treasury.php';
 
 require __DIR__.'/reports.php';
+
+require __DIR__.'/communications.php';
+
+require __DIR__.'/privacy.php';
