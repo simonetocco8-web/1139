@@ -21,3 +21,5 @@ require __DIR__.'/membership.php';
 require __DIR__.'/capitations.php';
 
 require __DIR__.'/levies.php';
+
+require __DIR__.'/treasury.php';

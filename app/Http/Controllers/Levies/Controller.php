@@ -59,10 +59,10 @@ class Controller
         $state = $v['state'] ?? 'all';
         $query = $access->obligations($lodge->id)->whereBetween('due_on', [$from, $to]);
         if ($state === 'open') {
-            $query->whereRaw('amount > COALESCE((SELECT SUM(p.amount) FROM levy_payments p WHERE p.obligation_id=levy_obligations.id AND p.lodge_id=levy_obligations.lodge_id),0)');
+            $query->whereRaw('amount > COALESCE((SELECT SUM(p.amount) FROM levy_payments p WHERE p.obligation_id=levy_obligations.id AND p.lodge_id=levy_obligations.lodge_id AND NOT EXISTS(SELECT 1 FROM levy_payment_voids v WHERE v.payment_id=p.id)),0)');
         }
         if ($state === 'paid') {
-            $query->whereRaw('amount = COALESCE((SELECT SUM(p.amount) FROM levy_payments p WHERE p.obligation_id=levy_obligations.id AND p.lodge_id=levy_obligations.lodge_id),0)');
+            $query->whereRaw('amount = COALESCE((SELECT SUM(p.amount) FROM levy_payments p WHERE p.obligation_id=levy_obligations.id AND p.lodge_id=levy_obligations.lodge_id AND NOT EXISTS(SELECT 1 FROM levy_payment_voids v WHERE v.payment_id=p.id)),0)');
         }
         $sums = DB::query()->fromSub((clone $query)->toBase(), 'obligations')->selectRaw('COALESCE(SUM(amount),0) as due, COALESCE(SUM(payments_sum_amount),0) as paid')->first();
         $due = Money::aggregate((string) $sums->due);
@@ -114,7 +114,7 @@ class Controller
         $from = $v['from'] ?? '2000-01-01';
         $to = $v['to'] ?? now()->toDateString();
         $q = Payment::query()->where('lodge_id', $lodge->id)->whereBetween('paid_on', [$from, $to]);
-        $total = Money::aggregate((string) (clone $q)->sum('amount'));
+        $total = Money::aggregate((string) (clone $q)->whereDoesntHave('voidRecord')->sum('amount'));
 
         return view('levies.history', compact('lodge', 'from', 'to', 'total') + ['payments' => $q->with('obligation')->orderByDesc('paid_on')->orderByDesc('id')->paginate(20)->withQueryString()]);
     }

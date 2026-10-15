@@ -22,10 +22,12 @@
         @endcan
         @php($currentLodge = app(\App\Domains\Organization\Actions\ActiveLodge::class)->current())
         @if($currentLodge)
+            @if(\App\Domains\Organization\Models\Lodge::query()->whereKey($currentLodge->id)->where('brothers_treasury_visible',true)->exists())<a href="{{ route('treasury.summary') }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">Riepilogo Tesoreria</a>@endif
             <a href="{{ route('capitations.personal') }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">Il mio prospetto capitazioni</a>
             <a href="{{ route('members.position') }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">La mia posizione</a>
             @if(app(\App\Domains\Identity\Authorization\TenantAccess::class)->fullRead(\App\Domains\Identity\VerifiedSession::user(), $currentLodge->id))
                 <a href="{{ route('members.index') }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">Fratelli della loggia</a>
+                <a href="{{ route('treasury.index') }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">Tesoreria</a>
                 <a href="{{ route('levies.index') }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">Canoni sovrastrutture</a>
                 <a href="{{ route('capitations.index') }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">Capitazioni</a>
             @endif

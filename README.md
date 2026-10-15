@@ -1,6 +1,6 @@
 # Gestionale Multi-Loggia — organizzazione, identità e capitazioni
 
-Fondamenta Laravel 13, Livewire 4, Blade, Tailwind e Fortify. Documenti iniziali redatti prima del codice: ARCHITECTURE.md, DATABASE.md, REQUIREMENTS.md, ROADMAP.md. Modello organizzativo e CRUD realizzati nella richiesta successiva: obbedienze, riti/compatibilità, gerarchie e logge. Fase 3: persone locali, iscrizioni e storico, importazione CSV e impostazioni loggia. Capitazioni implementate nella fase 4 e canoni verso sovrastrutture nella fase 5; Tesoreria operativa non implementata. Solo dati dimostrativi fittizi, nessun account demo nel seed.
+Fondamenta Laravel 13, Livewire 4, Blade, Tailwind e Fortify. Documenti iniziali redatti prima del codice: ARCHITECTURE.md, DATABASE.md, REQUIREMENTS.md, ROADMAP.md. Modello organizzativo e CRUD realizzati nella richiesta successiva: obbedienze, riti/compatibilità, gerarchie e logge. Fase 3: persone locali, iscrizioni e storico, importazione CSV e impostazioni loggia. Capitazioni implementate nella fase 4 e canoni verso sovrastrutture nella fase 5; Tesoreria implementata nella fase 6. Solo dati dimostrativi fittizi, nessun account demo nel seed.
 
 ## Prerequisiti
 PHP 8.3+ (CLI e web della stessa versione), Composer 2, estensioni ctype, curl, dom/XML, fileinfo, filter, hash, mbstring, openssl, PDO/pdo_mysql, session, tokenizer, zip. MySQL 8.x InnoDB/utf8mb4. Node 22.12+ o 24 LTS soltanto sulla macchina di build. Il lock Composer è risolto con platform.php=8.3.0, anche se in questa sessione si esegue PHP 8.4.26; `composer check-platform-reqs` verifica l'ambiente reale. PHPUnit 11 mantiene la compatibilità di sviluppo PHP 8.3.
@@ -156,3 +156,14 @@ php artisan db:seed --class=LevyDemoSeeder
 Lo scheduler esistente genera i canoni alle 01:30 Europe/Rome. Interfaccia globale `/admin/canoni`, locale `/loggia/canoni`. Nuove condizioni dopo l’avvio solo su cicli futuri; riferimento al primo giorno del ciclo, ore 00:00. Vedere [regole, gerarchie e integrazione finanziaria](LEVIES.md), [test](LEVIES-VERIFICATION.md) e [schermate desktop/mobile](docs/screenshots/levies/README.md).
 
 La Tesoreria è ancora assente: adapter `DisbursementGateway` indisponibile, pagamenti bloccati con messaggio esplicito, nessuna uscita simulata. Il servizio transazionale è verificato con spy esclusivamente nei test. Il collegamento al futuro modulo finanziario dovrà postare il movimento reale sulla stessa connessione. Nessuna fase successiva implementata.
+
+
+## Fase 6 — Tesoreria e movimenti finanziari
+
+Conti bancari e casse per loggia, saldi iniziali contabilizzati, operazioni e righe bilanciate immutabili. Incassi capitazioni e pagamenti canoni ora utilizzano gli adapter reali sulla stessa transazione: parziali, credito e storni aggiornano contestualmente il registro e le obbligazioni. Le indicazioni di Tesoreria indisponibile nelle sezioni delle fasi 4/5 descrivono lo stato storico precedente.
+
+Registro con filtri, saldi distinti/consolidati, riepiloghi netti, giroconti esclusi dai totali economici, cassa negativa bloccata anche nello storico, allegati privati cifrati. Riconciliazione manuale e CSV con anteprima/duplicati non contabilizzano automaticamente denaro. Nuove registrazioni da estratto richiedono approvazione esplicita; CSV/PDF esportabili con permessi. Fratelli: soltanto propri dati economici e, se abilitati dalla loggia, totali di Tesoreria aggregati.
+
+Installare le dipendenze aggiornate (Dompdf per PDF), applicare `php artisan migrate --force` e distribuire `public/build`. Interfaccia `/loggia/tesoreria`; demo facoltativa solo locale/testing: `php artisan db:seed --class=TreasuryDemoSeeder`, senza account di accesso. Nessuna API bancaria o nuova variabile segreta necessaria: si registrano gli eventi finanziari avvenuti, non si ordinano bonifici.
+
+[Modello, migrazione, permessi e configurazione](TREASURY.md), [verifiche](TREASURY-VERIFICATION.md), [schermate](docs/screenshots/treasury/README.md). Nessuna fase successiva implementata.

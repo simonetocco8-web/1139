@@ -30,7 +30,7 @@ class Obligation extends ImmutableRecord
     /** @return HasMany<Payment, $this> */
     public function payments(): HasMany
     {
-        return $this->hasMany(Payment::class);
+        return $this->hasMany(Payment::class)->whereDoesntHave('voidRecord');
     }
 
     /** @return BelongsTo<Lodge, $this> */

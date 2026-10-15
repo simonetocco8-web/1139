@@ -14,3 +14,5 @@ Schedule::command('model:prune', ['--model' => ImportBatch::class])->hourly()->w
 Schedule::command('capitation:generate')->dailyAt('01:15')->withoutOverlapping();
 
 Schedule::command('levy:generate')->dailyAt('01:30')->withoutOverlapping();
+
+Schedule::command('model:prune', ['--model' => App\Domains\Treasury\Models\ImportBatch::class])->hourly()->withoutOverlapping();

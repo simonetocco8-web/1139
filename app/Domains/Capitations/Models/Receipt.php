@@ -4,6 +4,7 @@ namespace App\Domains\Capitations\Models;
 
 use App\Domains\Identity\UtcDateTime;
 use App\Domains\Membership\CalendarDate;
+use App\Domains\Treasury\Models\ReceiptVoid;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -24,5 +25,10 @@ class Receipt extends ImmutableRecord
     public function allocations(): HasMany
     {
         return $this->hasMany(Allocation::class, 'receipt_id');
+    }
+
+    public function isVoided(): bool
+    {
+        return ReceiptVoid::query()->where('lodge_id', $this->lodge_id)->where('receipt_id', $this->id)->exists();
     }
 }

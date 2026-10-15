@@ -10,7 +10,7 @@ use App\Domains\Capitations\Models\Receipt;
 use App\Domains\Capitations\Money;
 use App\Domains\Identity\Audit;
 use App\Domains\Identity\VerifiedSession;
-use App\Domains\Organization\Models\Lodge;
+use App\Domains\Treasury\Actions\Ledger;
 use App\Domains\Treasury\Adapters\TreasuryUnavailable;
 use App\Domains\Treasury\Contracts\ReceiptGateway;
 use App\Domains\Treasury\Data\ReceiptInput;
@@ -25,7 +25,7 @@ final class Payments
     /** @param array<int,string> $amounts */
     public function receive(int $lodgeId, int $personId, string $amount, string $date, string $account, string $key, array $amounts = []): Receipt
     {
-        $this->access->guard($lodgeId, 'create');
+        $source = $this->access->guard($lodgeId, 'create');
         $this->key($key);
         $cents = Money::cents($amount);
         if ($cents <= 0) {
@@ -35,8 +35,8 @@ final class Payments
         $map = $this->map($amounts);
         $fingerprint = hash('sha256', json_encode([$personId, $cents, $date, $account, $map], JSON_THROW_ON_ERROR));
 
-        return DB::transaction(function () use ($lodgeId, $personId, $cents, $date, $account, $key, $map, $fingerprint): Receipt {
-            $this->lock($lodgeId, 'create');
+        return DB::transaction(function () use ($lodgeId, $personId, $cents, $date, $account, $key, $map, $fingerprint, $source): Receipt {
+            $this->lock($lodgeId, 'create', $source->obedience_id);
             $this->access->person($lodgeId, $personId);
             $existing = Receipt::query()->where('lodge_id', $lodgeId)->where('idempotency_key', $key)->first();
             if ($existing !== null) {
@@ -53,6 +53,7 @@ final class Payments
             $posting = $this->gateway->post(new ReceiptInput($lodgeId, $personId, $account, $cents, $date, $key), DB::connection());
             abort_unless($posting->operationReference !== '' && strlen($posting->operationReference) <= 64 && $posting->accountLabel !== '' && mb_strlen($posting->accountLabel) <= 160, 500);
             $receipt = Receipt::query()->create(['lodge_id' => $lodgeId, 'person_id' => $personId, 'amount' => Money::decimal($cents), 'received_on' => $date, 'account_reference' => $account, 'account_label' => $posting->accountLabel, 'operation_reference' => $posting->operationReference, 'idempotency_key' => $key, 'fingerprint' => $fingerprint, 'created_at' => now('UTC')]);
+            app(Ledger::class)->link($lodgeId, $posting->operationReference, $receipt->id, null);
             if ($map !== []) {
                 $this->allocate($lodgeId, $personId, $receipt->id, hash('sha256', $key.'|initial'), $this->decimals($map));
             }
@@ -65,17 +66,18 @@ final class Payments
     /** @param array<int,string> $amounts */
     public function allocate(int $lodgeId, int $personId, int $receiptId, string $key, array $amounts): void
     {
-        $this->access->guard($lodgeId, 'update');
+        $source = $this->access->guard($lodgeId, 'update');
         $this->key($key);
         $map = $this->map($amounts);
         if ($map === []) {
             $this->invalid('Indica almeno una rata e un importo positivo.');
         }
         $fingerprint = hash('sha256', json_encode([$receiptId, $personId, $map], JSON_THROW_ON_ERROR));
-        DB::transaction(function () use ($lodgeId, $personId, $receiptId, $key, $map, $fingerprint): void {
-            $this->lock($lodgeId, 'update');
+        DB::transaction(function () use ($lodgeId, $personId, $receiptId, $key, $map, $fingerprint, $source): void {
+            $this->lock($lodgeId, 'update', $source->obedience_id);
             $this->access->person($lodgeId, $personId);
             $receipt = Receipt::query()->where('lodge_id', $lodgeId)->where('person_id', $personId)->whereKey($receiptId)->lockForUpdate()->firstOrFail();
+            abort_if($receipt->isVoided(), 409, 'Incasso già stornato.');
             $existing = AllocationBatch::query()->where('lodge_id', $lodgeId)->where('idempotency_key', $key)->first();
             if ($existing !== null) {
                 abort_unless(hash_equals($existing->fingerprint, $fingerprint), 409);
@@ -93,7 +95,7 @@ final class Payments
 
     public function correct(int $lodgeId, int $id, string $amount, string $reason, string $key): void
     {
-        $this->access->guard($lodgeId, 'reverse');
+        $source = $this->access->guard($lodgeId, 'reverse');
         $this->key($key);
         $delta = Money::cents($amount, true);
         if ($delta === 0) {
@@ -101,8 +103,8 @@ final class Payments
         }
         $this->reason($reason);
         $fp = hash('sha256', json_encode([$id, $delta, $reason], JSON_THROW_ON_ERROR));
-        DB::transaction(function () use ($lodgeId, $id, $delta, $reason, $key, $fp): void {
-            $this->lock($lodgeId, 'reverse');
+        DB::transaction(function () use ($lodgeId, $id, $delta, $reason, $key, $fp, $source): void {
+            $this->lock($lodgeId, 'reverse', $source->obedience_id);
             $due = Installment::query()->where('lodge_id', $lodgeId)->whereKey($id)->lockForUpdate()->firstOrFail();
             $existing = Correction::query()->where('lodge_id', $lodgeId)->where('idempotency_key', $key)->first();
             if ($existing !== null) {
@@ -121,10 +123,10 @@ final class Payments
 
     public function reverse(int $lodgeId, int $id, string $reason): void
     {
-        $this->access->guard($lodgeId, 'reverse');
+        $source = $this->access->guard($lodgeId, 'reverse');
         $this->reason($reason);
-        DB::transaction(function () use ($lodgeId, $id, $reason): void {
-            $this->lock($lodgeId, 'reverse');
+        DB::transaction(function () use ($lodgeId, $id, $reason, $source): void {
+            $this->lock($lodgeId, 'reverse', $source->obedience_id);
             $a = Allocation::query()->where('lodge_id', $lodgeId)->whereKey($id)->lockForUpdate()->firstOrFail();
             abort_if($a->reverses_id !== null, 409);
             if (Allocation::query()->where('reverses_id', $a->id)->exists()) {
@@ -135,9 +137,9 @@ final class Payments
         }, 3);
     }
 
-    private function lock(int $lodgeId, string $permission): void
+    private function lock(int $lodgeId, string $permission, int $obedienceId): void
     {
-        Lodge::query()->whereKey($lodgeId)->lockForUpdate()->firstOrFail();
+        app(\App\Domains\Levies\Actions\Access::class)->lock($lodgeId, $obedienceId);
         $this->access->guard($lodgeId, $permission);
     }
 

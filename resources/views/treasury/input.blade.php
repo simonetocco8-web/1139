@@ -1,0 +1,1 @@
+<label class="block text-sm font-semibold">{{ $label }}<input name="{{ $name }}" type="{{ $type??'text' }}" value="{{ old($name,$value??'') }}" @required($required??true) @if(($type??'text')==='date') max="{{ now()->toDateString() }}" @endif class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 p-2"></label>

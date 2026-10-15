@@ -24,3 +24,6 @@ Capitazioni completate: calendario, piani/versioni, condizioni personali, snapsh
 
 ## Stato dopo la fase 5 autorizzata
 Canoni completati con programmi/versioni, deroghe locali, conteggio e destinatari storicizzati, generazione idempotente e pagamenti parziali sul contratto transazionale delle uscite. Dashboard, scadenzario e storico; test di gerarchia, periodi, isolamento e concorrenza. Rimane indisponibile il servizio finanziario reale: nessun saldo o movimento simulato. Fermarsi qui; la Tesoreria operativa richiede una nuova istruzione.
+
+## Stato dopo la fase 6 autorizzata
+Tesoreria completata con operazioni/righe bilanciate, adapter reali, saldi e storni integrati, protezione cassa, registri, allegati, riconciliazione ed export CSV/PDF. Test MySQL di spese simultanee, idempotenza, trasferimenti e incassi reali sul ledger. Le limitazioni Treasury indisponibile descritte nelle fasi 4/5 sono superate. Nessuna fase successiva avviata.

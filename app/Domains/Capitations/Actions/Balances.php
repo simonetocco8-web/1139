@@ -27,6 +27,9 @@ final class Balances
 
     public static function credit(Receipt $receipt): int
     {
+        if ($receipt->isVoided()) {
+            return 0;
+        }
         $credit = Money::cents($receipt->amount) - Money::cents((string) $receipt->allocations()->sum('amount'), true);
         if ($credit < 0) {
             throw new \LogicException('Credito negativo.');

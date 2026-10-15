@@ -7,6 +7,7 @@ use App\Domains\Identity\Audit;
 use App\Domains\Identity\VerifiedSession;
 use App\Domains\Levies\Models\Obligation;
 use App\Domains\Levies\Models\Payment;
+use App\Domains\Treasury\Actions\Ledger;
 use App\Domains\Treasury\Adapters\TreasuryUnavailable;
 use App\Domains\Treasury\Contracts\DisbursementGateway;
 use App\Domains\Treasury\Data\DisbursementInput;
@@ -54,6 +55,7 @@ final class Payments
                 throw new \LogicException('Riferimento Tesoreria non valido.');
             }
             $payment = Payment::query()->create(['lodge_id' => $lodgeId, 'obligation_id' => $due->id, 'amount' => Money::decimal($cents), 'paid_on' => $paidOn, 'account_reference' => $account, 'account_label' => $posting->accountLabel, 'operation_reference' => $posting->operationReference, 'idempotency_key' => $key, 'fingerprint' => $fingerprint, 'actor_id' => VerifiedSession::user()->id, 'created_at' => now('UTC')]);
+            app(Ledger::class)->link($lodgeId, $posting->operationReference, null, $payment->id);
             Audit::record('levy.payment.posted', VerifiedSession::user()->id, $lodgeId, metadata: ['obligation_id' => $due->id, 'payment_id' => $payment->id]);
 
             return $payment;
