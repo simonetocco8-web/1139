@@ -31,7 +31,6 @@ Route::view('/recupero-secondo-fattore', 'identity.factor-recovery')->middleware
 Route::post('/recupero-secondo-fattore', [AccountController::class, 'recover'])->middleware(['guest', 'throttle:identity-public'])->name('factor.recover');
 
 Route::middleware(RequireVerifiedSession::class)->group(function (): void {
-    Route::livewire('/dashboard', Security::class)->name('dashboard');
     Route::livewire('/account/sicurezza', Security::class)->name('account.security');
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
     Route::middleware('throttle:identity-sensitive')->group(function (): void {

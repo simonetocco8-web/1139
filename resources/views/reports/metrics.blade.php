@@ -1,0 +1,1 @@
+<dl class="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">@foreach($metrics as $label=>$cents)<div class="rounded-2xl border border-slate-200 bg-white p-5"><dt class="text-sm text-slate-600">{{ $label }}</dt><dd class="mt-2 text-2xl font-bold tabular-nums">{{ \App\Domains\Capitations\Money::display($cents) }}</dd></div>@endforeach</dl>

@@ -1,6 +1,6 @@
-# Gestionale Multi-Loggia — organizzazione, identità e capitazioni
+# Gestionale Multi-Loggia — organizzazione, tesoreria e report
 
-Fondamenta Laravel 13, Livewire 4, Blade, Tailwind e Fortify. Documenti iniziali redatti prima del codice: ARCHITECTURE.md, DATABASE.md, REQUIREMENTS.md, ROADMAP.md. Modello organizzativo e CRUD realizzati nella richiesta successiva: obbedienze, riti/compatibilità, gerarchie e logge. Fase 3: persone locali, iscrizioni e storico, importazione CSV e impostazioni loggia. Capitazioni implementate nella fase 4 e canoni verso sovrastrutture nella fase 5; Tesoreria implementata nella fase 6. Solo dati dimostrativi fittizi, nessun account demo nel seed.
+Fondamenta Laravel 13, Livewire 4, Blade, Tailwind e Fortify. Documenti iniziali redatti prima del codice: ARCHITECTURE.md, DATABASE.md, REQUIREMENTS.md, ROADMAP.md. Modello organizzativo e CRUD realizzati nella richiesta successiva: obbedienze, riti/compatibilità, gerarchie e logge. Fase 3: persone locali, iscrizioni e storico, importazione CSV e impostazioni loggia. Capitazioni implementate nella fase 4 e canoni verso sovrastrutture nella fase 5; Tesoreria implementata nella fase 6, dashboard e report nella fase 7. Solo dati dimostrativi fittizi, nessun account demo nel seed.
 
 ## Prerequisiti
 PHP 8.3+ (CLI e web della stessa versione), Composer 2, estensioni ctype, curl, dom/XML, fileinfo, filter, hash, mbstring, openssl, PDO/pdo_mysql, session, tokenizer, zip. MySQL 8.x InnoDB/utf8mb4. Node 22.12+ o 24 LTS soltanto sulla macchina di build. Il lock Composer è risolto con platform.php=8.3.0, anche se in questa sessione si esegue PHP 8.4.26; `composer check-platform-reqs` verifica l'ambiente reale. PHPUnit 11 mantiene la compatibilità di sviluppo PHP 8.3.
@@ -167,3 +167,12 @@ Registro con filtri, saldi distinti/consolidati, riepiloghi netti, giroconti esc
 Installare le dipendenze aggiornate (Dompdf per PDF), applicare `php artisan migrate --force` e distribuire `public/build`. Interfaccia `/loggia/tesoreria`; demo facoltativa solo locale/testing: `php artisan db:seed --class=TreasuryDemoSeeder`, senza account di accesso. Nessuna API bancaria o nuova variabile segreta necessaria: si registrano gli eventi finanziari avvenuti, non si ordinano bonifici.
 
 [Modello, migrazione, permessi e configurazione](TREASURY.md), [verifiche](TREASURY-VERIFICATION.md), [schermate](docs/screenshots/treasury/README.md). Nessuna fase successiva implementata.
+
+
+## Fase 7 — dashboard e report
+
+Dashboard separate per Super User, Amministratore/Tesoriere e Fratello; report finanziari, categorie, saldi, capitazioni, arretrati, canoni e prospetti annuali. CSV/PDF privati e autorizzati, filtri di periodo, card mobile, menu richiudibile e date italiane. I saldi usano le registrazioni reali; giroconti esclusi dai flussi economici, storni e credito coerenti. I report delle obbligazioni espongono lo stato attuale delle scadenze selezionate, dichiarandolo esplicitamente.
+
+Applicare `php artisan migrate --force` per il solo heartbeat tecnico e distribuire `public/build` aggiornato. Il cron scheduler esistente registra il segnale ogni minuto; prima del primo segnale lo stato è «Non rilevato». Nessuna nuova dipendenza o credenziale. Accesso da `/dashboard`, report dalla panoramica della loggia autorizzata.
+
+[Schermate e permessi](REPORTS.md), [test e verifiche](REPORTS-VERIFICATION.md), [schermate desktop/mobile](docs/screenshots/reports/README.md). Le indicazioni delle fasi precedenti di report futuri descrivono lo stato storico. Fermarsi alla fase 7.

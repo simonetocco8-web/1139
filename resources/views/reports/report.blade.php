@@ -1,0 +1,10 @@
+@extends('membership.page')
+@section('title',$document->title)
+@section('content')
+@if($kind==='personal')<a class="mb-5 inline-block min-h-11 py-3 font-semibold text-teal-900 underline" href="{{ route('reports.dashboard',$lodge->id) }}">Torna alla panoramica</a>@else @include('reports.nav') @endif
+@include('reports.filter',['period'=>$document->period])
+<p class="mb-5 rounded-xl bg-teal-50 p-4 text-sm leading-6">{{ $document->note }}</p>
+@include('reports.metrics',['metrics'=>$document->metrics])
+@if($canExport)<div class="mb-4 flex flex-wrap gap-3">@foreach(['csv'=>'CSV','pdf'=>'PDF'] as $format=>$label)<a data-report-export data-format="{{ $format }}" href="{{ route('reports.export',array_merge(['lodge'=>$lodge->id,'kind'=>$kind,'format'=>$format],$kind==='annual'?['year'=>substr($document->period->from,0,4)]:['from'=>$document->period->from,'to'=>$document->period->to])) }}" class="min-h-11 rounded-xl border border-teal-800 bg-white px-4 py-3 font-semibold text-teal-900">Esporta {{ $label }}</a>@endforeach</div><p data-export-status role="status" aria-live="polite" class="mb-5 text-sm font-semibold text-teal-900"></p>@endif
+<div class="grid gap-4 lg:grid-cols-2">@forelse($rows as $row)<article class="min-w-0 rounded-2xl border border-slate-200 bg-white p-5"><dl class="space-y-3">@foreach($document->columns as $key=>$column)<div class="{{ $loop->first?'border-b border-slate-100 pb-3':'' }}"><dt class="text-sm text-slate-600">{{ $column['label'] }}</dt><dd class="mt-1 break-words font-semibold {{ $column['type']==='money'?'text-lg tabular-nums':'' }}">@if($column['type']==='money'){{ \App\Domains\Capitations\Money::display($row[$key]) }}@elseif($column['type']==='date'){{ \App\Domains\Reports\Period::italian($row[$key]) }}@else{{ $row[$key] }}@endif</dd></div>@endforeach</dl></article>@empty<p class="rounded-xl bg-white p-5">Nessun dato per il periodo selezionato.</p>@endforelse</div><div class="mt-6">{{ $rows->links() }}</div>
+@endsection

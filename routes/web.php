@@ -23,3 +23,5 @@ require __DIR__.'/capitations.php';
 require __DIR__.'/levies.php';
 
 require __DIR__.'/treasury.php';
+
+require __DIR__.'/reports.php';

@@ -27,3 +27,7 @@ Canoni completati con programmi/versioni, deroghe locali, conteggio e destinatar
 
 ## Stato dopo la fase 6 autorizzata
 Tesoreria completata con operazioni/righe bilanciate, adapter reali, saldi e storni integrati, protezione cassa, registri, allegati, riconciliazione ed export CSV/PDF. Test MySQL di spese simultanee, idempotenza, trasferimenti e incassi reali sul ledger. Le limitazioni Treasury indisponibile descritte nelle fasi 4/5 sono superate. Nessuna fase successiva avviata.
+
+
+## Stato dopo la fase 7 autorizzata
+Dashboard e report gestionali completati usando i moduli esistenti: separazione ruoli, tenant e dati personali, CSV/PDF privati, filtri e mobile, controllo tecnico scheduler verificabile. Test economici, autorizzazioni e snapshot concorrente MySQL; dettagli in REPORTS-VERIFICATION.md. La richiesta fase 7 autorizza dashboard/report, non le altre attività privacy/rilascio raccolte nella voce 7 iniziale: retention, anonimizzazione, restore operativo, audit indipendente e collaudo hosting restano da affrontare con istruzioni specifiche. Fermarsi qui.
