@@ -18,6 +18,7 @@
             @endforeach
             <a href="{{ route('platform.invites') }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">Inviti piattaforma</a>
             <a href="{{ route('assistance') }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">Assistenza</a>
+        <a href="{{ route('levies.platform') }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">Regole generali canoni</a>
         @endcan
         @php($currentLodge = app(\App\Domains\Organization\Actions\ActiveLodge::class)->current())
         @if($currentLodge)
@@ -25,6 +26,7 @@
             <a href="{{ route('members.position') }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">La mia posizione</a>
             @if(app(\App\Domains\Identity\Authorization\TenantAccess::class)->fullRead(\App\Domains\Identity\VerifiedSession::user(), $currentLodge->id))
                 <a href="{{ route('members.index') }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">Fratelli della loggia</a>
+                <a href="{{ route('levies.index') }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">Canoni sovrastrutture</a>
                 <a href="{{ route('capitations.index') }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">Capitazioni</a>
             @endif
         @endif

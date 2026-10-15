@@ -21,3 +21,6 @@ Anagrafiche locali/iscrizioni della voce 3 completate: schede, stati, esenzioni,
 
 ## Stato dopo richiesta FASE 4
 Capitazioni completate: calendario, piani/versioni, condizioni personali, snapshot, generazione automatica/idempotente, rettifiche e report/personale. Servizi di pagamenti/credito/imputazioni collegati al contratto transazionale Treasury, con adapter reale indisponibile fino alla fase Tesoreria. Nessun sistema finanziario parallelo; nessun incasso reale o simulato nel seed. Le indicazioni precedenti di contabilità esclusa descrivono le rispettive fasi storiche. Fermarsi qui; canoni e Tesoreria richiedono una nuova istruzione.
+
+## Stato dopo la fase 5 autorizzata
+Canoni completati con programmi/versioni, deroghe locali, conteggio e destinatari storicizzati, generazione idempotente e pagamenti parziali sul contratto transazionale delle uscite. Dashboard, scadenzario e storico; test di gerarchia, periodi, isolamento e concorrenza. Rimane indisponibile il servizio finanziario reale: nessun saldo o movimento simulato. Fermarsi qui; la Tesoreria operativa richiede una nuova istruzione.

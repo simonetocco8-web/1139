@@ -8,7 +8,9 @@ use App\Domains\Identity\Delivery\TechnicalDelivery;
 use App\Domains\Identity\VerifiedSession;
 use App\Domains\Organization\Actions\OrganizationActions;
 use App\Domains\Organization\Policies\OrganizationPolicy;
+use App\Domains\Treasury\Adapters\UnavailableDisbursementGateway;
 use App\Domains\Treasury\Adapters\UnavailableReceiptGateway;
+use App\Domains\Treasury\Contracts\DisbursementGateway;
 use App\Domains\Treasury\Contracts\ReceiptGateway;
 use App\Http\Middleware\RequireVerifiedSession;
 use App\Models\User;
@@ -29,6 +31,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(ReceiptGateway::class, UnavailableReceiptGateway::class);
+        $this->app->singleton(DisbursementGateway::class, UnavailableDisbursementGateway::class);
         $this->app->singleton(FakeTransport::class);
         $this->app->singleton(CodeTransport::class, TechnicalDelivery::class);
     }

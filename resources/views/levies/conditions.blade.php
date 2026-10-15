@@ -1,0 +1,10 @@
+@extends('membership.page')
+@section('title','Condizioni e deroghe canoni')
+@section('content')
+@include('levies.nav')
+<p class="mb-5 rounded-xl bg-teal-50 p-4 text-sm">Priorità: deroga della loggia, condizione della sovrastruttura destinataria, condizione dell’obbedienza. Le versioni sono immutabili. Una condizione scaduta lascia applicare il livello meno specifico; “Non applicare” sospende il canone senza ricadere sulle condizioni generali. Le deroghe locali valgono per il destinatario del livello previsto dal programma, anche dopo un trasferimento.</p>
+@foreach($programs as $program)<article class="mb-5 rounded-xl border border-slate-200 bg-white p-5"><h2 class="text-xl font-bold">{{ $program->code }} · {{ $program->description }}</h2><p class="mt-2 text-sm">{{ __('levies.level.'.$program->level) }} · {{ __('levies.periodicity.'.$program->periodicity) }} · {{ $program->starts_on->format('d/m/Y') }} → {{ $program->ends_on?->format('d/m/Y')??'senza termine' }}</p>@include('levies.condition-list')
+@if(app(\App\Domains\Identity\Authorization\TenantAccess::class)->allows(\App\Domains\Identity\VerifiedSession::user(),$lodge->id,'update'))
+<details class="mt-4"><summary class="cursor-pointer min-h-11 py-3 font-semibold text-teal-900">Aggiungi deroga futura</summary><form method="POST" action="{{ route('levies.local',[$lodge->id,$program->id]) }}" class="space-y-4">@csrf<div class="grid gap-4 sm:grid-cols-2"><label class="text-sm font-semibold">Decorrenza (inizio ciclo futuro)<input type="date" name="effective_on" required min="{{ now()->addDay()->toDateString() }}" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 p-2"></label><label class="text-sm font-semibold">Termine (fine ciclo, opzionale)<input type="date" name="ends_on" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 p-2"></label></div>@include('levies.economic')@include('membership.confirmation')<button class="min-h-11 rounded-lg bg-teal-800 px-4 py-2 font-semibold text-white">Registra deroga</button></form></details>@endif</article>@endforeach
+{{ $programs->links() }}
+@endsection

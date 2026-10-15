@@ -1,6 +1,6 @@
 # Gestionale Multi-Loggia — organizzazione, identità e capitazioni
 
-Fondamenta Laravel 13, Livewire 4, Blade, Tailwind e Fortify. Documenti iniziali redatti prima del codice: ARCHITECTURE.md, DATABASE.md, REQUIREMENTS.md, ROADMAP.md. Modello organizzativo e CRUD realizzati nella richiesta successiva: obbedienze, riti/compatibilità, gerarchie e logge. Fase 3: persone locali, iscrizioni e storico, importazione CSV e impostazioni loggia. Capitazioni implementate nella fase 4; canoni e Tesoreria non implementati. Solo dati dimostrativi fittizi, nessun account demo nel seed.
+Fondamenta Laravel 13, Livewire 4, Blade, Tailwind e Fortify. Documenti iniziali redatti prima del codice: ARCHITECTURE.md, DATABASE.md, REQUIREMENTS.md, ROADMAP.md. Modello organizzativo e CRUD realizzati nella richiesta successiva: obbedienze, riti/compatibilità, gerarchie e logge. Fase 3: persone locali, iscrizioni e storico, importazione CSV e impostazioni loggia. Capitazioni implementate nella fase 4 e canoni verso sovrastrutture nella fase 5; Tesoreria operativa non implementata. Solo dati dimostrativi fittizi, nessun account demo nel seed.
 
 ## Prerequisiti
 PHP 8.3+ (CLI e web della stessa versione), Composer 2, estensioni ctype, curl, dom/XML, fileinfo, filter, hash, mbstring, openssl, PDO/pdo_mysql, session, tokenizer, zip. MySQL 8.x InnoDB/utf8mb4. Node 22.12+ o 24 LTS soltanto sulla macchina di build. Il lock Composer è risolto con platform.php=8.3.0, anche se in questa sessione si esegue PHP 8.4.26; `composer check-platform-reqs` verifica l'ambiente reale. PHPUnit 11 mantiene la compatibilità di sviluppo PHP 8.3.
@@ -140,3 +140,19 @@ Dati completamente fittizi e idempotenti, nessun account/incasso/messaggio:
 php artisan db:seed --class=CapitationDemoSeeder
 ```
 Solo locale/testing. Conservare APP_KEY nei backup per motivazioni cifrate. [Verifiche fase 4](CAPITATIONS-VERIFICATION.md) e [schermate](docs/screenshots/capitations/README.md). Fermarsi qui: nessun canone o modulo Tesoreria avviato.
+
+
+## Fase 5 — canoni verso sovrastrutture
+
+Regole generali versionate per obbedienza/livello, condizioni specifiche delle sovrastrutture e deroghe locali con validità. Importi fissi o per fratello, periodicità mensile/trimestrale/semestrale/annuale, criterio e conteggio salvati, destinatario dallo storico territoriale. Obblighi immutabili e idempotenti, dashboard/scadenzario/storico, pagamenti parziali attraverso il contratto di uscita della Tesoreria.
+
+```sh
+php artisan migrate --force
+php artisan levy:generate
+# Solo locale/testing, senza account né pagamenti fittizi:
+php artisan db:seed --class=LevyDemoSeeder
+```
+
+Lo scheduler esistente genera i canoni alle 01:30 Europe/Rome. Interfaccia globale `/admin/canoni`, locale `/loggia/canoni`. Nuove condizioni dopo l’avvio solo su cicli futuri; riferimento al primo giorno del ciclo, ore 00:00. Vedere [regole, gerarchie e integrazione finanziaria](LEVIES.md), [test](LEVIES-VERIFICATION.md) e [schermate desktop/mobile](docs/screenshots/levies/README.md).
+
+La Tesoreria è ancora assente: adapter `DisbursementGateway` indisponibile, pagamenti bloccati con messaggio esplicito, nessuna uscita simulata. Il servizio transazionale è verificato con spy esclusivamente nei test. Il collegamento al futuro modulo finanziario dovrà postare il movimento reale sulla stessa connessione. Nessuna fase successiva implementata.

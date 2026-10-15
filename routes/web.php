@@ -19,3 +19,5 @@ require __DIR__.'/identity.php';
 require __DIR__.'/membership.php';
 
 require __DIR__.'/capitations.php';
+
+require __DIR__.'/levies.php';

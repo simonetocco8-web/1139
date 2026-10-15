@@ -12,3 +12,5 @@ Artisan::command('inspire', function () {
 Schedule::command('model:prune', ['--model' => ImportBatch::class])->hourly()->withoutOverlapping();
 
 Schedule::command('capitation:generate')->dailyAt('01:15')->withoutOverlapping();
+
+Schedule::command('levy:generate')->dailyAt('01:30')->withoutOverlapping();
