@@ -14,6 +14,13 @@ class LodgeSelector extends Component
         VerifiedSession::user();
     }
 
+    public function mount(ActiveLodge $context): void
+    {
+        if ($context->current() !== null && ! $context->canChoose()) {
+            $this->redirectRoute('dashboard');
+        }
+    }
+
     public function select(int $id, ActiveLodge $context): void
     {
         $context->select($id);

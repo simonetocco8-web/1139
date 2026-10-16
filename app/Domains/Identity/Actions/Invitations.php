@@ -45,6 +45,11 @@ final class Invitations
                     || Invitation::query()->where('lodge_id', $lodgeId)->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now('UTC')->format('Y-m-d H:i:s.u'))->whereJsonContains('roles', 'administrator')->exists(), 403, 'Un amministratore è già stato predisposto.');
             }
 
+            $recipient = User::query()->where('email', $email)->lockForUpdate()->first();
+            if ($recipient !== null) {
+                app(SingleLodgeMembership::class)->assertAssignment($recipient->id, $lodgeId, $roles);
+            }
+
             if ($personId !== null) {
                 abort_if($bootstrap, 403);
                 $person = Person::query()->where('lodge_id', $lodgeId)->whereKey($personId)->lockForUpdate()->firstOrFail();
@@ -109,6 +114,9 @@ final class Invitations
             } else {
                 $data = Validator::make($input, ['name' => ['required', 'string', 'max:120'], 'password' => PasswordRules::strong()])->validate();
                 $user = User::query()->forceCreate(['name' => $data['name'], 'email' => $invite->email, 'password' => Hash::make($data['password']), 'is_active' => true, 'activated_at' => now('UTC'), 'email_verified_at' => now('UTC')]);
+            }
+            if ($invite->lodge_id !== null) {
+                app(SingleLodgeMembership::class)->assertAssignment($user->id, $invite->lodge_id, $invite->roles);
             }
             if ($person !== null) {
                 abort_if(Person::query()->where('lodge_id', $invite->lodge_id)->where('user_id', $user->id)->where('id', '!=', $person->id)->exists(), 409, 'Account già associato nella loggia.');

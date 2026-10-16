@@ -53,6 +53,18 @@ class MembershipTest extends TestCase
         $this->members = app(Members::class);
     }
 
+    public function test_membership_status_labels_and_optional_expulsion_date(): void
+    {
+        $this->assertSame(['active' => 'Attivo', 'suspended' => 'In Sonno', 'ended' => 'Depennato'], __('membership.status'));
+        foreach (['active', 'suspended'] as $status) {
+            $v = $this->members->enrollmentValues(array_replace($this->values(), ['status' => $status, 'ends_on' => '2026-01-02']));
+            $this->assertNull($v['ends_on']);
+        }
+        $v = $this->members->enrollmentValues(array_replace($this->values(), ['status' => 'ended', 'ends_on' => null]));
+        $this->assertSame(now()->toDateString(), $v['ends_on']);
+        $this->get(route('members.create', $this->a->id))->assertOk()->assertSee('Data Depennamento (facoltativa)')->assertSee('In Sonno')->assertSee('Depennato')->assertSee('x-show', false);
+    }
+
     private function role(User $user, Lodge $lodge, string $role): void
     {
         DB::table('lodge_user')->updateOrInsert(['lodge_id' => $lodge->id, 'user_id' => $user->id], ['is_active' => true]);
@@ -151,12 +163,13 @@ class MembershipTest extends TestCase
         $person->forceFill(['user_id' => $user->id])->save();
         $foreign->forceFill(['user_id' => $user->id])->save();
         $this->role($user, $this->a, 'brother');
-        $this->role($user, $this->b, 'brother');
         $this->select($user, $this->a);
         $this->get(route('members.position'))->assertOk()->assertSee('FICTION_001')->assertDontSee('OTHER_001')->assertDontSee('FOREIGN_ONLY');
         $this->get(route('members.index'))->assertForbidden();
         $this->get(route('members.show', [$this->a->id, $other->id]))->assertForbidden();
         $this->get(route('members.export'))->assertForbidden();
+        DB::table('lodge_user')->where('user_id', $user->id)->where('lodge_id', $this->a->id)->update(['is_active' => false]);
+        $this->role($user, $this->b, 'brother');
         $this->select($user, $this->b);
         $this->get(route('members.position'))->assertOk()->assertSee('FOREIGN_ONLY')->assertDontSee('FICTION_001');
         $this->expectException(ModelNotFoundException::class);
@@ -359,7 +372,7 @@ class MembershipTest extends TestCase
         $this->assertDatabaseHas('lodge_user_roles', ['lodge_id' => $this->a->id, 'user_id' => $user->id, 'role' => 'brother']);
     }
 
-    public function test_same_verified_account_can_accept_member_invites_in_two_lodges(): void
+    public function test_same_verified_brother_cannot_accept_a_second_lodge_invite(): void
     {
         $a = $this->person();
         $b = $this->foreign();
@@ -374,11 +387,16 @@ class MembershipTest extends TestCase
         }
         $user = User::factory()->create(['email' => 'fittizio@example.invalid']);
         $this->select($user, $this->a);
-        foreach ($tokens as $token) {
-            app(Invitations::class)->accept($token, []);
+        app(Invitations::class)->accept($tokens[0], []);
+        try {
+            app(Invitations::class)->accept($tokens[1], []);
+            $this->fail('Seconda appartenenza consentita.');
+        } catch (ValidationException $error) {
+            $this->assertArrayHasKey('roles', $error->errors());
         }
         $this->assertSame($user->id, $a->fresh()->user_id);
-        $this->assertSame($user->id, $b->fresh()->user_id);
+        $this->assertNull($b->fresh()->user_id);
+        $this->assertDatabaseCount('lodge_user_roles', 3);
     }
 
     public function test_changed_email_or_closed_enrollment_invalidates_pending_invite(): void

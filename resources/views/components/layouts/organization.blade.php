@@ -44,7 +44,7 @@
             <a href="{{ route('reports.show',[$currentLodge->id,'financial']) }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">Report gestionali</a>
             <a href="{{ route('tenant.report') }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">Report accessi</a>
         @endif
-            <a href="{{ route('lodge.select') }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">Loggia attiva</a>
+            @if(app(\App\Domains\Organization\Actions\ActiveLodge::class)->canChoose())<a href="{{ route('lodge.select') }}" class="flex min-h-12 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-teal-50">Loggia attiva</a>@endif
         </nav>
         <p class="mt-6 hidden text-sm leading-6 lg:block text-slate-600">Gli accessi alle singole logge restano separati dai permessi della piattaforma.</p>
     </aside>

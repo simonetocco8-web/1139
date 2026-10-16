@@ -24,6 +24,7 @@ use App\Domains\Organization\Models\Rite;
 use App\Livewire\Identity\AccessManager;
 use App\Livewire\Identity\PlatformInvites;
 use App\Livewire\Identity\Security;
+use App\Livewire\Organization\LodgeSelector;
 use App\Livewire\Organization\Manager;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
@@ -62,6 +63,44 @@ class IdentityTest extends TestCase
         session()->put('auth.second_factor_user_id', $user->id);
         session()->put('auth.second_factor_verified_at', now('UTC')->getTimestamp());
         session()->put('auth.session_version', $user->session_version);
+    }
+
+    public function test_single_lodge_brother_enters_dashboard_without_a_selector(): void
+    {
+        $user = User::factory()->create();
+        $lodge = $this->lodge('SINGLE');
+        $this->role($user, $lodge, 'brother');
+        $this->verified($user);
+        session()->forget('active_lodge_id');
+        $this->get('/dashboard')->assertOk()->assertDontSee('Cambia loggia')->assertDontSee('Seleziona loggia');
+        $this->assertSame($lodge->id, session('active_lodge_id'));
+        Livewire::test(LodgeSelector::class)->assertRedirect('/dashboard');
+    }
+
+    public function test_local_roles_cannot_give_a_brother_a_second_affiliation(): void
+    {
+        $a = $this->lodge('ONE');
+        $b = $this->lodge('TWO');
+        $admin = User::factory()->create();
+        $user = User::factory()->create();
+        $this->role($admin, $b, 'administrator');
+        $this->role($user, $a, 'brother');
+        $this->role($user, $b, 'treasurer');
+        $this->select($admin, $b);
+        $this->expectException(ValidationException::class);
+        app(LocalRoles::class)->update($user->id, ['brother'], true);
+    }
+
+    public function test_legacy_multiple_brother_memberships_cannot_select_or_read_a_tenant(): void
+    {
+        $user = User::factory()->create();
+        $a = $this->lodge('LEGACY_A');
+        $b = $this->lodge('LEGACY_B');
+        $this->role($user, $a, 'brother');
+        $this->role($user, $b, 'brother');
+        $this->verified($user);
+        $this->get('/dashboard')->assertForbidden();
+        Livewire::test(LodgeSelector::class)->assertForbidden();
     }
 
     private function code(): string

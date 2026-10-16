@@ -6,6 +6,7 @@ use App\Domains\Identity\Audit;
 use App\Domains\Identity\Authorization\TenantContext;
 use App\Domains\Identity\VerifiedSession;
 use App\Domains\Organization\Models\Lodge;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -23,6 +24,8 @@ final class LocalRoles
             Lodge::query()->whereKey($lodge->id)->lockForUpdate()->firstOrFail();
             app(TenantContext::class)->assertTenant($lodge->id, 'administration');
             DB::table('lodge_user')->where('lodge_id', $lodge->id)->where('user_id', $userId)->lockForUpdate()->firstOrFail();
+            User::query()->whereKey($userId)->lockForUpdate()->firstOrFail();
+            app(SingleLodgeMembership::class)->assertAssignment($userId, $lodge->id, $roles, $active);
             $wasAdmin = DB::table('lodge_user_roles')->where('lodge_id', $lodge->id)->where('user_id', $userId)->where('role', 'administrator')->exists();
             if ($wasAdmin && (! $active || ! in_array('administrator', $roles, true)) && ! $this->otherAdmin($lodge->id, $userId)) {
                 throw ValidationException::withMessages(['roles' => 'Conservare almeno un amministratore attivo per la loggia.']);

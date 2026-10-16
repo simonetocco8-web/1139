@@ -23,7 +23,7 @@ class ExportController
                 return;
             }
             fwrite($stream, "\xEF\xBB\xBF");
-            fputcsv($stream, ['Codice', 'Nome', 'Cognome', 'Inizio', 'Fine', 'Stato', 'Esenzione amministrativa'], ';', '"', '');
+            fputcsv($stream, ['Codice', 'Nome', 'Cognome', 'Inizio', 'Data Depennamento', 'Stato', 'Esenzione amministrativa'], ';', '"', '');
             foreach ($members->directory($lodge->id)->with('enrollments')->orderBy('id')->lazy(100) as $person) {
                 $members->guard($lodge->id, 'export');
                 foreach ($person->enrollments as $enrollment) {

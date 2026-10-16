@@ -446,7 +446,6 @@ class ManagementReportsTest extends TestCase
         $f = $this->fixture();
         $u = User::factory()->create();
         $f['person']->forceFill(['user_id' => $u->id])->save();
-        $this->role($u, $this->a, 'brother');
         $this->role($u, $this->b, 'brother');
         $this->select($u, $this->b);
         $d = app(ReportBuilder::class)->make($this->b->id, 'personal', ['person_id' => $f['person']->id, 'user_id' => $this->user->id]);

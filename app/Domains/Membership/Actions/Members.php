@@ -78,16 +78,22 @@ final class Members
         if (($input['ends_on'] ?? null) === '') {
             $input['ends_on'] = null;
         }
+        if (($input['status'] ?? null) === 'ended' && empty($input['ends_on'])) {
+            $input['ends_on'] = now()->toDateString();
+        }
+        if (in_array($input['status'] ?? null, ['active', 'suspended'], true)) {
+            $input['ends_on'] = null;
+        }
         $values = Validator::make($input, [
             'starts_on' => ['required', 'date_format:Y-m-d'], 'ends_on' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:starts_on'],
             'status' => ['required', Rule::in(['active', 'suspended', 'ended'])],
             'administrative_exemption' => ['required', 'boolean'], 'exemption_reason' => ['nullable', 'string', 'max:1000', 'required_if:administrative_exemption,1'],
         ])->validate();
         if ($values['status'] === 'ended' && empty($values['ends_on'])) {
-            throw ValidationException::withMessages(['ends_on' => 'La chiusura richiede la data di fine.']);
+            throw ValidationException::withMessages(['ends_on' => 'Il depennamento richiede una data valida.']);
         }
         if ($values['status'] === 'ended' && $values['ends_on'] > now()->toDateString()) {
-            throw ValidationException::withMessages(['ends_on' => 'Una chiusura non può essere futura.']);
+            throw ValidationException::withMessages(['ends_on' => 'La data di depennamento non può essere futura.']);
         }
         if (! $values['administrative_exemption']) {
             $values['exemption_reason'] = null;

@@ -383,12 +383,13 @@ class CapitationTest extends TestCase
         $plan = $this->plans->create($this->b->id, $this->values(['description' => 'Piano Beta Riservato']));
         $this->generator->run($this->b->id, '2026-01-01');
         $b->forceFill(['user_id' => $u->id])->save();
-        $this->role($u, $this->b, 'brother');
         $this->select($u, $this->a);
         $this->get(route('capitations.personal'))->assertOk()->assertSee('LOCAL_1')->assertDontSee('OTHER')->assertDontSee('Piano Beta Riservato');
         $this->get(route('capitations.index'))->assertForbidden();
         $this->get(route('capitations.report', 'morosi'))->assertForbidden();
         $this->get(route('capitations.person', [$this->a->id, $other->id]))->assertForbidden();
+        DB::table('lodge_user')->where('user_id', $u->id)->where('lodge_id', $this->a->id)->update(['is_active' => false]);
+        $this->role($u, $this->b, 'brother');
         $this->select($u, $this->b);
         $this->get(route('capitations.personal'))->assertOk()->assertSee('BETA_ONLY')->assertDontSee('LOCAL_1');
     }

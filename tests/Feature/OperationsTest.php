@@ -264,7 +264,6 @@ class OperationsTest extends TestCase
     public function test_preference_changes_are_checked_again_at_send_and_scope_is_local(): void
     {
         [$p,$r,$u] = $this->linked();
-        $this->role($u, $this->b, 'brother');
         $o = $this->outbox('cap_overdue', $u, $r->id);
         $this->select($u, $this->a);
         app(Preferences::class)->save($this->a->id, 'cap_overdue', false, 'email');
