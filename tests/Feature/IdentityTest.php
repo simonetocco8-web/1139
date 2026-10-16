@@ -65,11 +65,18 @@ class IdentityTest extends TestCase
         session()->put('auth.session_version', $user->session_version);
     }
 
-    public function test_single_lodge_brother_enters_dashboard_without_a_selector(): void
+    /** @return array<array{string}> */
+    public static function localRoleCases(): array
+    {
+        return [['brother'], ['administrator'], ['treasurer']];
+    }
+
+    #[DataProvider('localRoleCases')]
+    public function test_single_lodge_local_user_enters_dashboard_without_a_selector(string $role): void
     {
         $user = User::factory()->create();
         $lodge = $this->lodge('SINGLE');
-        $this->role($user, $lodge, 'brother');
+        $this->role($user, $lodge, $role);
         $this->verified($user);
         session()->forget('active_lodge_id');
         $this->get('/dashboard')->assertOk()->assertDontSee('Cambia loggia')->assertDontSee('Seleziona loggia');
@@ -77,27 +84,29 @@ class IdentityTest extends TestCase
         Livewire::test(LodgeSelector::class)->assertRedirect('/dashboard');
     }
 
-    public function test_local_roles_cannot_give_a_brother_a_second_affiliation(): void
+    #[DataProvider('localRoleCases')]
+    public function test_local_roles_cannot_give_an_account_a_second_affiliation(string $role): void
     {
         $a = $this->lodge('ONE');
         $b = $this->lodge('TWO');
         $admin = User::factory()->create();
         $user = User::factory()->create();
         $this->role($admin, $b, 'administrator');
-        $this->role($user, $a, 'brother');
+        $this->role($user, $a, $role);
         $this->role($user, $b, 'treasurer');
         $this->select($admin, $b);
         $this->expectException(ValidationException::class);
-        app(LocalRoles::class)->update($user->id, ['brother'], true);
+        app(LocalRoles::class)->update($user->id, [$role], true);
     }
 
-    public function test_legacy_multiple_brother_memberships_cannot_select_or_read_a_tenant(): void
+    #[DataProvider('localRoleCases')]
+    public function test_legacy_multiple_local_memberships_cannot_select_or_read_a_tenant(string $role): void
     {
         $user = User::factory()->create();
         $a = $this->lodge('LEGACY_A');
         $b = $this->lodge('LEGACY_B');
-        $this->role($user, $a, 'brother');
-        $this->role($user, $b, 'brother');
+        $this->role($user, $a, $role);
+        $this->role($user, $b, $role);
         $this->verified($user);
         $this->get('/dashboard')->assertForbidden();
         Livewire::test(LodgeSelector::class)->assertForbidden();
@@ -139,6 +148,7 @@ class IdentityTest extends TestCase
 
     private function select(User $user, Lodge $lodge): void
     {
+        $this->useLocalLodge($user, $lodge->id);
         $this->verified($user);
         app(ActiveLodge::class)->select($lodge->id);
     }
@@ -625,6 +635,7 @@ class IdentityTest extends TestCase
         $this->role($admin, $b, 'administrator');
         $this->select($admin, $a);
         $component = Livewire::test(AccessManager::class)->call('edit', $admin->id);
+        $this->useLocalLodge($admin, $b->id);
         app(ActiveLodge::class)->select($b->id);
         $component->call('save')->assertStatus(409);
         $this->select($admin, $a);

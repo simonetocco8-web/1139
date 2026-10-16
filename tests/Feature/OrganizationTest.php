@@ -244,20 +244,18 @@ class OrganizationTest extends TestCase
         $this->assertNull(session('active_lodge_id'));
     }
 
-    public function test_selector_lists_only_authorized_lodges_and_supports_multiple_roles(): void
+    public function test_local_account_enters_one_authorized_lodge_without_a_selector(): void
     {
         $first = $this->lodge();
-        $second = $this->lodge(['number' => '18', 'name' => 'Loggia Fittizia Autorizzata']);
         $foreign = $this->lodge(['number' => '19', 'name' => 'Loggia Fittizia Non Autorizzata']);
         $user = User::factory()->create();
         $this->membership($user, $first);
-        $this->membership($user, $second, 'treasurer');
         DB::table('lodge_user_roles')->insert(['lodge_id' => $first->id, 'user_id' => $user->id, 'role' => 'treasurer']);
         $this->verify($user);
-        Livewire::test(LodgeSelector::class)->assertSee($first->name)->assertSee($second->name)->assertDontSee($foreign->name)->call('select', $second->id)->assertHasNoErrors();
-        $this->assertSame($second->id, session('active_lodge_id'));
+        Livewire::test(LodgeSelector::class)->assertRedirect('/dashboard');
+        $this->assertSame($first->id, session('active_lodge_id'));
         Livewire::test(LodgeSelector::class)->call('select', $foreign->id)->assertNotFound();
-        $this->assertSame($second->id, session('active_lodge_id'));
+        $this->assertSame($first->id, session('active_lodge_id'));
     }
 
     public function test_revoked_membership_and_inactive_owner_clear_current_tenant(): void

@@ -93,6 +93,7 @@ class LevyTest extends TestCase
 
     private function select(User $u, Lodge $l): void
     {
+        $this->useLocalLodge($u, $l->id);
         $this->actingAs($u);
         session()->put(['active_lodge_id' => $l->id, 'auth.second_factor_user_id' => $u->id, 'auth.second_factor_verified_at' => now('UTC')->getTimestamp(), 'auth.session_version' => $u->session_version]);
     }

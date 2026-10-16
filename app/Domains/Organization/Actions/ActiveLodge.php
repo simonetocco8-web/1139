@@ -34,7 +34,7 @@ final class ActiveLodge
     public function select(int $id): Lodge
     {
         $user = VerifiedSession::user();
-        $this->assertSingleBrother($user);
+        $this->assertSingleLocal($user);
         $lodge = $this->authorized($user)->findOrFail($id);
         session()->put('active_lodge_id', $lodge->id);
         Audit::record('tenant.selected', VerifiedSession::user()->id, $lodge->id);
@@ -45,7 +45,7 @@ final class ActiveLodge
     public function current(): ?Lodge
     {
         $user = VerifiedSession::user();
-        $this->assertSingleBrother($user);
+        $this->assertSingleLocal($user);
         $available = $this->authorized($user);
         $id = session('active_lodge_id');
         if (! is_int($id)) {
@@ -70,14 +70,14 @@ final class ActiveLodge
     {
         $user = VerifiedSession::user();
 
-        return ! app(SingleLodgeMembership::class)->brotherOnly($user) && $this->authorized($user)->count() > 1;
+        return ! app(SingleLodgeMembership::class)->localOnly($user) && $this->authorized($user)->count() > 1;
     }
 
-    private function assertSingleBrother(User $user): void
+    private function assertSingleLocal(User $user): void
     {
-        if (app(SingleLodgeMembership::class)->brotherOnly($user)) {
-            $count = DB::table('lodge_user_roles as r')->join('lodge_user as m', fn ($j) => $j->on('m.user_id', '=', 'r.user_id')->on('m.lodge_id', '=', 'r.lodge_id'))->where('r.user_id', $user->id)->where('r.role', 'brother')->where('m.is_active', true)->distinct()->count('r.lodge_id');
-            abort_if($count > 1, 403, 'Associazione a più logge non consentita per un Fratello. Rivolgiti all’amministratore per correggere gli accessi.');
+        if (app(SingleLodgeMembership::class)->localOnly($user)) {
+            $count = DB::table('lodge_user_roles as r')->join('lodge_user as m', fn ($j) => $j->on('m.user_id', '=', 'r.user_id')->on('m.lodge_id', '=', 'r.lodge_id'))->where('r.user_id', $user->id)->where('m.is_active', true)->distinct()->count('r.lodge_id');
+            abort_if($count > 1, 403, 'Associazione a più logge non consentita per un utente locale. Rivolgiti all’amministratore per correggere gli accessi.');
         }
     }
 }

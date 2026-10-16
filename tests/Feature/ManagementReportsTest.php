@@ -95,6 +95,7 @@ class ManagementReportsTest extends TestCase
 
     private function select(User $u, Lodge $l): void
     {
+        $this->useLocalLodge($u, $l->id);
         $this->actingAs($u);
         session()->put(['active_lodge_id' => $l->id, 'auth.second_factor_user_id' => $u->id, 'auth.second_factor_verified_at' => now('UTC')->getTimestamp(), 'auth.session_version' => $u->session_version]);
     }
@@ -362,10 +363,10 @@ class ManagementReportsTest extends TestCase
         $this->get(route('reports.show', [$this->a->id, 'financial']))->assertStatus(409);
     }
 
-    public function test_user_without_tenant_gets_selection_instead_of_private_dashboard(): void
+    public function test_single_lodge_user_enters_dashboard_without_selection(): void
     {
         session()->forget('active_lodge_id');
-        $this->get('/dashboard')->assertOk()->assertSee('Seleziona una loggia autorizzata');
+        $this->get('/dashboard')->assertOk()->assertSee($this->a->name)->assertDontSee('Seleziona una loggia autorizzata');
     }
 
     public function test_tenant_change_forged_url_and_filters_cannot_cross_scope(): void

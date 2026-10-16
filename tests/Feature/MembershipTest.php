@@ -73,6 +73,7 @@ class MembershipTest extends TestCase
 
     private function select(User $user, Lodge $lodge): void
     {
+        $this->useLocalLodge($user, $lodge->id);
         $this->actingAs($user);
         session()->put(['active_lodge_id' => $lodge->id, 'auth.second_factor_user_id' => $user->id, 'auth.second_factor_verified_at' => now('UTC')->getTimestamp(), 'auth.session_version' => $user->session_version]);
     }
@@ -376,10 +377,12 @@ class MembershipTest extends TestCase
     {
         $a = $this->person();
         $b = $this->foreign();
+        $secondAdmin = User::factory()->create();
+        $this->role($secondAdmin, $this->b, 'administrator');
         $tokens = [];
         foreach ([$a, $b] as $person) {
             $lodge = $person->lodge_id === $this->a->id ? $this->a : $this->b;
-            $this->select($this->admin, $lodge);
+            $this->select($lodge->id === $this->a->id ? $this->admin : $secondAdmin, $lodge);
             app(Invitations::class)->lodge($lodge->id, $person->email, ['brother'], personId: $person->id);
             $message = end(app(FakeTransport::class)->messages);
             preg_match('~/inviti/([a-f0-9]+)~', $message['body'], $matches);
@@ -396,7 +399,7 @@ class MembershipTest extends TestCase
         }
         $this->assertSame($user->id, $a->fresh()->user_id);
         $this->assertNull($b->fresh()->user_id);
-        $this->assertDatabaseCount('lodge_user_roles', 3);
+        $this->assertSame(1, DB::table('lodge_user_roles')->where('user_id', $user->id)->count());
     }
 
     public function test_changed_email_or_closed_enrollment_invalidates_pending_invite(): void
