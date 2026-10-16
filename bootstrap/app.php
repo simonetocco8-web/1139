@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\PrivacyHeaders;
+use App\Http\Middleware\RenewAuthenticatedActivity;
 use App\Http\Middleware\RequireSecureTransport;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
@@ -22,7 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(PrivacyHeaders::class);
         $middleware->redirectUsersTo('/dashboard');
-        $middleware->web(append: [RequireSecureTransport::class]);
+        $middleware->web(append: [RequireSecureTransport::class, RenewAuthenticatedActivity::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->report(function (QueryException $error): bool {

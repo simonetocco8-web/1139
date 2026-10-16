@@ -26,8 +26,8 @@ final class LocalRoles
             DB::table('lodge_user')->where('lodge_id', $lodge->id)->where('user_id', $userId)->lockForUpdate()->firstOrFail();
             User::query()->whereKey($userId)->lockForUpdate()->firstOrFail();
             app(SingleLodgeMembership::class)->assertAssignment($userId, $lodge->id, $roles, $active);
-            $wasAdmin = DB::table('lodge_user_roles')->where('lodge_id', $lodge->id)->where('user_id', $userId)->where('role', 'administrator')->exists();
-            if ($wasAdmin && (! $active || ! in_array('administrator', $roles, true)) && ! $this->otherAdmin($lodge->id, $userId)) {
+            $wasAdmin = DB::table('lodge_user_roles')->where('lodge_id', $lodge->id)->where('user_id', $userId)->whereIn('role', ['administrator', 'worshipful_master'])->exists();
+            if ($wasAdmin && (! $active || ! array_intersect(['administrator', 'worshipful_master'], $roles)) && ! $this->otherAdmin($lodge->id, $userId)) {
                 throw ValidationException::withMessages(['roles' => 'Conservare almeno un amministratore attivo per la loggia.']);
             }
             DB::table('lodge_user_roles')->where('lodge_id', $lodge->id)->where('user_id', $userId)->delete();
@@ -45,6 +45,6 @@ final class LocalRoles
             $join->on('lodge_user.lodge_id', '=', 'lodge_user_roles.lodge_id')->on('lodge_user.user_id', '=', 'lodge_user_roles.user_id');
         })
             ->join('users', 'users.id', '=', 'lodge_user.user_id')->where('lodge_user_roles.lodge_id', $lodgeId)->where('lodge_user_roles.user_id', '!=', $except)
-            ->where('lodge_user_roles.role', 'administrator')->where('lodge_user.is_active', true)->where('users.is_active', true)->exists();
+            ->whereIn('lodge_user_roles.role', ['administrator', 'worshipful_master'])->where('lodge_user.is_active', true)->where('users.is_active', true)->exists();
     }
 }

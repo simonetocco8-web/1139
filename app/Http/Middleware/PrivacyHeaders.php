@@ -11,6 +11,10 @@ class PrivacyHeaders
     public function handle(Request $request, Closure $next): Response
     {
         $response = $next($request);
+        if ($request->hasSession() && is_int($request->session()->get('auth.last_activity_at'))) {
+            $response->headers->set('X-Session-Expires-At', (string) ($request->session()->get('auth.last_activity_at') + (int) config('session.lifetime', 30) * 60));
+            $response->headers->set('X-Session-Server-Time', (string) now('UTC')->getTimestamp());
+        }
         $response->headers->set('X-Robots-Tag', 'noindex, nofollow, noarchive');
         $response->headers->set('Cache-Control', 'no-store, private');
         $response->headers->set('Referrer-Policy', 'no-referrer');

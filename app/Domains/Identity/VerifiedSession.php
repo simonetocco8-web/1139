@@ -13,12 +13,15 @@ final class VerifiedSession
         abort_unless($authenticated instanceof User, 401, 'Accesso riservato.');
         $user = User::query()->find($authenticated->id);
         $verifiedAt = session('auth.second_factor_verified_at');
+        $activityAt = session('auth.last_activity_at', $verifiedAt);
         $valid = $user !== null && $user->is_active && $user->activated_at !== null
             && $user->email_verified_at !== null
             && session('auth.second_factor_user_id') === $user->id
             && session('auth.session_version') === $user->session_version
             && is_int($verifiedAt) && $verifiedAt <= now('UTC')->getTimestamp()
-            && $verifiedAt > now('UTC')->getTimestamp() - ((int) config('session.lifetime', 30) * 60);
+            && is_int($activityAt) && $activityAt <= now('UTC')->getTimestamp()
+            && $activityAt >= $verifiedAt
+            && $activityAt > now('UTC')->getTimestamp() - ((int) config('session.lifetime', 30) * 60);
         if (! $valid) {
             Auth::logout();
             session()->invalidate();

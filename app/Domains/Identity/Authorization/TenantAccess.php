@@ -22,7 +22,7 @@ final class TenantAccess
         }
 
         return $permission !== 'administration' && $user->is_platform_admin
-            && $this->grant($user, $lodgeId, $permission) !== null;
+            && $this->grant($user, $lodgeId, $permission === 'financial.read' ? 'read' : $permission) !== null;
     }
 
     public function ordinary(User $user, int $lodgeId, string $permission): bool
@@ -41,7 +41,7 @@ final class TenantAccess
 
     public function fullRead(User $user, int $lodgeId): bool
     {
-        return $this->ordinary($user, $lodgeId, 'create') || ($user->is_platform_admin && $this->grant($user, $lodgeId, 'read') !== null);
+        return $this->ordinary($user, $lodgeId, 'members.manage') || $this->ordinary($user, $lodgeId, 'create') || ($user->is_platform_admin && $this->grant($user, $lodgeId, 'read') !== null);
     }
 
     public function grant(User $user, int $lodgeId, string $permission): ?AssistedAccess

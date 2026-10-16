@@ -35,7 +35,7 @@ class MemberController
 
     public function create(int $lodge): View
     {
-        $tenant = $this->members->guard($lodge, 'administration');
+        $tenant = $this->members->guard($lodge, 'members.manage');
 
         return view('membership.create', ['lodge' => $tenant]);
     }

@@ -16,7 +16,7 @@ final class Access
     {
         $lodge = app(TenantContext::class)->assertTenant($lodgeId, $permission);
         if ($staff) {
-            abort_unless(app(TenantAccess::class)->fullRead(VerifiedSession::user(), $lodgeId), 403);
+            abort_unless(app(TenantAccess::class)->fullRead(VerifiedSession::user(), $lodgeId) && app(TenantAccess::class)->allows(VerifiedSession::user(), $lodgeId, 'financial.read'), 403);
         }
 
         return $lodge;

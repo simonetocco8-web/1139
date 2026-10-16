@@ -24,9 +24,10 @@ final class Dashboards
         $user = VerifiedSession::user();
         $access = app(TenantAccess::class);
         abort_unless($access->fullRead($user, $lodgeId), 403);
+        $canFinance = $access->allows($user, $lodgeId, 'financial.read');
         $canReports = $access->allows($user, $lodgeId, 'reports');
 
-        return DB::transaction(function () use ($lodgeId, $period, $lodge, $canReports, $access, $user): array {
+        return DB::transaction(function () use ($lodgeId, $period, $lodge, $canReports, $canFinance, $access, $user): array {
             $accounts = $this->sources->accounts($lodgeId, $period);
             $bank = 0;
             $cash = 0;
@@ -40,13 +41,13 @@ final class Dashboards
             $rates = $this->sources->debtTotals($this->sources->rates($lodgeId));
             $levies = $this->sources->debtTotals($this->sources->levies($lodgeId));
             $flow = $canReports ? $this->sources->finance($lodgeId, $period) : null;
-            $nextRates = $this->sources->openRates($lodgeId)->whereBetween('due_on', [now()->toDateString(), now()->addDays(30)->toDateString()])->orderBy('due_on')->limit(6)->get()->map(fn ($r) => ['label' => 'Capitazione · '.$r->last_name.' '.$r->first_name, 'due_on' => substr($r->due_on, 0, 10), 'amount' => Money::aggregate((string) $r->residual), 'url' => route('capitations.person', [$lodgeId, $r->person_id])])->all();
-            $nextLevies = $this->sources->openLevies($lodgeId)->whereBetween('due_on', [now()->toDateString(), now()->addDays(30)->toDateString()])->orderBy('due_on')->limit(6)->get()->map(fn ($r) => ['label' => 'Canone · '.$r->recipient_name, 'due_on' => substr($r->due_on, 0, 10), 'amount' => Money::aggregate((string) $r->residual), 'url' => route('levies.detail', [$lodgeId, $r->id])])->all();
+            $nextRates = $this->sources->openRates($lodgeId)->whereBetween('due_on', [now()->toDateString(), now()->addDays(30)->toDateString()])->orderBy('due_on')->limit(6)->get()->map(fn ($r) => ['label' => 'Capitazione · '.$r->last_name.' '.$r->first_name, 'due_on' => substr($r->due_on, 0, 10), 'amount' => Money::aggregate((string) $r->residual), 'url' => $canFinance ? route('capitations.person', [$lodgeId, $r->person_id]) : route('reports.show', [$lodgeId, 'capitations'])])->all();
+            $nextLevies = $this->sources->openLevies($lodgeId)->whereBetween('due_on', [now()->toDateString(), now()->addDays(30)->toDateString()])->orderBy('due_on')->limit(6)->get()->map(fn ($r) => ['label' => 'Canone · '.$r->recipient_name, 'due_on' => substr($r->due_on, 0, 10), 'amount' => Money::aggregate((string) $r->residual), 'url' => $canFinance ? route('levies.detail', [$lodgeId, $r->id]) : route('reports.show', [$lodgeId, 'levies'])])->all();
             $next = array_merge($nextRates, $nextLevies);
             usort($next, fn ($a, $b) => strcmp($a['due_on'], $b['due_on']));
-            $movements = Operation::query()->where('lodge_id', $lodgeId)->whereBetween('booked_on', [$period->from, $period->to])->with('lines.account')->orderByDesc('booked_on')->orderByDesc('id')->limit(6)->get();
+            $movements = $canFinance ? Operation::query()->where('lodge_id', $lodgeId)->whereBetween('booked_on', [$period->from, $period->to])->with('lines.account')->orderByDesc('booked_on')->orderByDesc('id')->limit(6)->get() : collect();
 
-            return compact('lodge', 'period', 'bank', 'cash', 'rates', 'levies', 'flow', 'next', 'movements', 'canReports') + ['canCreate' => $access->allows($user, $lodgeId, 'create'), 'canAdmin' => $access->allows($user, $lodgeId, 'administration')];
+            return compact('lodge', 'period', 'bank', 'cash', 'rates', 'levies', 'flow', 'next', 'movements', 'canReports', 'canFinance') + ['canCreate' => $access->allows($user, $lodgeId, 'create'), 'canAdmin' => $access->allows($user, $lodgeId, 'administration')];
         });
     }
 

@@ -15,15 +15,15 @@ class ImportController
 {
     public function index(Members $members): View
     {
-        $lodge = app(TenantContext::class)->resolve('administration');
-        $members->guard($lodge->id, 'administration');
+        $lodge = app(TenantContext::class)->resolve('members.manage');
+        $members->guard($lodge->id, 'members.manage');
 
         return view('membership.import', ['lodge' => $lodge]);
     }
 
     public function preview(Request $request, int $lodge, CsvImport $import): RedirectResponse
     {
-        app(Members::class)->guard($lodge, 'administration');
+        app(Members::class)->guard($lodge, 'members.manage');
         $request->validate(['csv' => ['required', 'file', 'max:256']]);
         $file = $request->file('csv');
         abort_unless($file instanceof UploadedFile, 422);
@@ -36,12 +36,12 @@ class ImportController
 
     public function show(int $lodge, string $token, CsvImport $import): View
     {
-        return view('membership.preview', ['lodge' => app(Members::class)->guard($lodge, 'administration'), 'batch' => $import->find($lodge, $token), 'token' => $token]);
+        return view('membership.preview', ['lodge' => app(Members::class)->guard($lodge, 'members.manage'), 'batch' => $import->find($lodge, $token), 'token' => $token]);
     }
 
     public function confirm(Request $request, int $lodge, string $token, CsvImport $import): RedirectResponse
     {
-        app(Members::class)->guard($lodge, 'administration');
+        app(Members::class)->guard($lodge, 'members.manage');
         $request->validate(['confirmation' => ['required', 'accepted']]);
         $count = $import->confirm($lodge, $token);
 
@@ -50,8 +50,8 @@ class ImportController
 
     public function template(Members $members): StreamedResponse
     {
-        $lodge = app(TenantContext::class)->resolve('administration');
-        $members->guard($lodge->id, 'administration');
+        $lodge = app(TenantContext::class)->resolve('members.manage');
+        $members->guard($lodge->id, 'members.manage');
 
         return response()->streamDownload(function (): void {
             $stream = fopen('php://output', 'wb');

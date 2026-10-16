@@ -1,9 +1,9 @@
 @extends('membership.page')
 @section('title', 'Fratelli della loggia')
 @section('content')
-@php($admin = app(\App\Domains\Identity\Authorization\TenantAccess::class)->allows(\App\Domains\Identity\VerifiedSession::user(), $lodge->id, 'administration'))
+@php($admin = app(\App\Domains\Identity\Authorization\TenantAccess::class)->allows(\App\Domains\Identity\VerifiedSession::user(), $lodge->id, 'members.manage'))
 <div class="mb-5 flex flex-wrap gap-3">
-@if($admin)<a class="flex min-h-12 items-center rounded-xl bg-teal-800 px-5 font-semibold text-white" href="{{ route('members.create', $lodge->id) }}">Inserisci fratello</a><a class="flex min-h-12 items-center rounded-xl border border-slate-300 px-4 font-semibold" href="{{ route('members.import') }}">Importa CSV</a><a class="flex min-h-12 items-center rounded-xl border border-slate-300 px-4 font-semibold" href="{{ route('members.settings') }}">Impostazioni loggia</a>@endif
+@if($admin)<a class="flex min-h-12 items-center rounded-xl bg-teal-800 px-5 font-semibold text-white" href="{{ route('members.create', $lodge->id) }}">Inserisci fratello</a><a class="flex min-h-12 items-center rounded-xl border border-slate-300 px-4 font-semibold" href="{{ route('members.import') }}">Importa CSV</a>@if(app(\App\Domains\Identity\Authorization\TenantAccess::class)->allows(\App\Domains\Identity\VerifiedSession::user(),$lodge->id,'administration'))<a class="flex min-h-12 items-center rounded-xl border border-slate-300 px-4 font-semibold" href="{{ route('members.settings') }}">Impostazioni loggia</a>@endif@endif
 @if(app(\App\Domains\Identity\Authorization\TenantAccess::class)->allows(\App\Domains\Identity\VerifiedSession::user(), $lodge->id, 'export'))<a class="flex min-h-12 items-center rounded-xl border border-slate-300 px-4 font-semibold" href="{{ route('members.export') }}">Esporta iscrizioni CSV</a>@endif
 </div>
 <form method="GET" class="mb-6 grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 sm:grid-cols-[1fr_12rem_auto]">

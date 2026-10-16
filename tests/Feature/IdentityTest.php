@@ -68,7 +68,7 @@ class IdentityTest extends TestCase
     /** @return array<array{string}> */
     public static function localRoleCases(): array
     {
-        return [['brother'], ['administrator'], ['treasurer']];
+        return [['brother'], ['administrator'], ['treasurer'], ['secretary'], ['worshipful_master']];
     }
 
     #[DataProvider('localRoleCases')]
@@ -554,7 +554,7 @@ class IdentityTest extends TestCase
     /** @return array<string,array{string,list<string>}> */
     public static function roleMatrix(): array
     {
-        return ['admin' => ['administrator', ['read', 'create', 'update', 'reverse', 'export', 'administration', 'reports']], 'tesoriere' => ['treasurer', ['read', 'create', 'update', 'reverse', 'export', 'reports']], 'fratello' => ['brother', ['read']]];
+        return ['admin' => ['administrator', ['read', 'create', 'update', 'reverse', 'export', 'administration', 'reports', 'members.manage', 'financial.read']], 'tesoriere' => ['treasurer', ['read', 'create', 'update', 'reverse', 'export', 'reports', 'financial.read']], 'fratello' => ['brother', ['read']], 'segretario' => ['secretary', ['read', 'members.manage', 'reports', 'export']], 'maestro' => ['worshipful_master', ['read', 'create', 'update', 'reverse', 'export', 'administration', 'reports', 'members.manage', 'financial.read']]];
     }
 
     #[DataProvider('roleMatrix')]

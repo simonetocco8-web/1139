@@ -157,6 +157,7 @@ final class OtpService
             Auth::login($result['user'], false);
             session()->put('auth.second_factor_user_id', $result['user']->id);
             session()->put('auth.second_factor_verified_at', now('UTC')->getTimestamp());
+            session()->put('auth.last_activity_at', now('UTC')->getTimestamp());
             session()->put('auth.session_version', $result['user']->session_version);
             try {
                 Audit::record('login.completed', $result['user']->id);

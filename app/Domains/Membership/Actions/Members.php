@@ -105,11 +105,11 @@ final class Members
     /** @param array<string,mixed> $input */
     public function create(int $lodgeId, array $input): Person
     {
-        $this->guard($lodgeId, 'administration');
+        $this->guard($lodgeId, 'members.manage');
 
         return DB::transaction(function () use ($lodgeId, $input): Person {
             Lodge::query()->whereKey($lodgeId)->lockForUpdate()->firstOrFail();
-            $this->guard($lodgeId, 'administration');
+            $this->guard($lodgeId, 'members.manage');
             $values = $this->personValues($lodgeId, $input);
             $enrollment = $this->enrollmentValues($input);
             $person = Person::query()->forceCreate($values + ['lodge_id' => $lodgeId, 'version' => 1]);
@@ -123,12 +123,12 @@ final class Members
     /** @param array<string,mixed> $input */
     public function update(int $lodgeId, int $id, array $input): Person
     {
-        $this->guard($lodgeId, 'administration');
+        $this->guard($lodgeId, 'members.manage');
 
         return DB::transaction(function () use ($lodgeId, $id, $input): Person {
             Lodge::query()->whereKey($lodgeId)->lockForUpdate()->firstOrFail();
             $person = $this->directory($lodgeId)->whereKey($id)->lockForUpdate()->firstOrFail();
-            $this->guard($lodgeId, 'administration');
+            $this->guard($lodgeId, 'members.manage');
             $this->version($person->version, $input['version'] ?? null);
             $values = $this->personValues($lodgeId, $input, $id);
             if ($person->email !== ($values['email'] ?? null)) {
@@ -146,12 +146,12 @@ final class Members
     /** @param array<string,mixed> $input */
     public function enrollment(int $lodgeId, int $personId, array $input, ?int $id = null): Enrollment
     {
-        $this->guard($lodgeId, 'administration');
+        $this->guard($lodgeId, 'members.manage');
 
         return DB::transaction(function () use ($lodgeId, $personId, $input, $id): Enrollment {
             Lodge::query()->whereKey($lodgeId)->lockForUpdate()->firstOrFail();
             $person = $this->directory($lodgeId)->whereKey($personId)->lockForUpdate()->firstOrFail();
-            $this->guard($lodgeId, 'administration');
+            $this->guard($lodgeId, 'members.manage');
             $enrollment = $id === null ? new Enrollment : $person->enrollments()->whereKey($id)->lockForUpdate()->firstOrFail();
             abort_if($enrollment->exists && $enrollment->status === 'ended', 409, 'L’iscrizione conclusa resta immutabile.');
             if ($enrollment->exists) {
@@ -178,7 +178,7 @@ final class Members
 
     public function deactivate(int $lodgeId, int $personId, int $id, int $version, string $endsOn): void
     {
-        $this->guard($lodgeId, 'administration');
+        $this->guard($lodgeId, 'members.manage');
         $enrollment = $this->directory($lodgeId)->whereKey($personId)->firstOrFail()->enrollments()->whereKey($id)->firstOrFail();
         $this->enrollment($lodgeId, $personId, ['starts_on' => $enrollment->starts_on->format('Y-m-d'), 'ends_on' => $endsOn, 'status' => 'ended', 'version' => $version, 'administrative_exemption' => $enrollment->administrative_exemption, 'exemption_reason' => $enrollment->exemption_reason], $id);
     }

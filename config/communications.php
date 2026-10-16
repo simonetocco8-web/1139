@@ -15,5 +15,7 @@ return [
         'administrator' => ['cap_upcoming', 'cap_overdue', 'levy_upcoming', 'levy_overdue', 'administrative'],
         'treasurer' => ['cap_upcoming', 'cap_overdue', 'levy_upcoming', 'levy_overdue', 'administrative'],
         'brother' => ['cap_upcoming', 'cap_overdue', 'administrative'],
+        'secretary' => ['cap_upcoming', 'cap_overdue', 'administrative'],
+        'worshipful_master' => ['cap_upcoming', 'cap_overdue', 'levy_upcoming', 'levy_overdue', 'administrative'],
     ],
 ];

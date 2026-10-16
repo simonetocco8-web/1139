@@ -6,13 +6,23 @@ const restoreFilters = () => {
         form.querySelector('[data-filter-status]')?.classList.add('hidden');
     });
 };
-const setupMenu = () => document.querySelectorAll('[data-menu-toggle]').forEach((button) => { button.hidden = false; });
+const setupMenu = () => document.querySelectorAll('[data-menu-toggle], [data-submenu-toggle]').forEach((button) => { button.hidden = false; });
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setupMenu);
 else setupMenu();
 document.addEventListener('livewire:navigated', setupMenu);
 window.addEventListener('pageshow', restoreFilters);
 document.addEventListener('click', async (event) => {
     if (!(event.target instanceof Element)) return;
+    const submenu = event.target.closest('[data-submenu-toggle]');
+    if (submenu) {
+        const panel = document.getElementById(submenu.getAttribute('aria-controls'));
+        if (panel) {
+            const open = submenu.getAttribute('aria-expanded') !== 'true';
+            submenu.setAttribute('aria-expanded', String(open));
+            panel.hidden = !open;
+        }
+        return;
+    }
     const toggle = event.target.closest('[data-menu-toggle]');
     if (toggle) {
         const nav = document.getElementById(toggle.getAttribute('aria-controls'));
@@ -32,6 +42,7 @@ document.addEventListener('click', async (event) => {
     if (status) { status.setAttribute('role', 'status'); status.textContent = 'Preparazione del documento…'; }
     try {
         const response = await fetch(link.href, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+        updateSessionFromResponse(response);
         if (!response.ok) {
             let message = 'Esportazione non disponibile. Riprova o verifica la sessione e i permessi.';
             const content = await response.json().catch(() => null);
@@ -66,4 +77,58 @@ document.addEventListener('submit', (event) => {
 
 document.addEventListener('change', (event) => {
     if (event.target instanceof HTMLSelectElement && event.target.matches('[data-report-switch]')) window.location.assign(event.target.value);
+});
+
+// The clock displays server activity deadlines; it never sends keep-alive requests.
+let sessionClock = null;
+let sessionTicker = null;
+const paintSessionClock = () => {
+    if (!sessionClock?.element.isConnected) return;
+    const remaining = Math.max(0, Math.ceil((sessionClock.expires * 1000 - Date.now() - sessionClock.offset) / 1000));
+    const minutes = Math.floor(remaining / 60);
+    sessionClock.element.querySelector('[data-session-remaining]').textContent = `${String(minutes).padStart(2, '0')}:${String(remaining % 60).padStart(2, '0')}`;
+    sessionClock.element.querySelector('[data-session-expired]').hidden = remaining !== 0;
+    sessionClock.element.classList.toggle('text-amber-900', remaining > 0 && remaining <= 120);
+    sessionClock.element.classList.toggle('text-red-800', remaining === 0);
+};
+const setSessionDeadline = (expires, serverNow, publish = true) => {
+    if (!sessionClock || !Number.isFinite(expires) || !Number.isFinite(serverNow)) return;
+    sessionClock.expires = expires;
+    sessionClock.offset = serverNow * 1000 - Date.now();
+    sessionClock.element.dataset.expiresAt = String(expires);
+    if (publish) {
+        try { localStorage.setItem(sessionClock.key, JSON.stringify({ expires, offset: sessionClock.offset })); } catch (_) { /* Storage may be disabled. */ }
+    }
+    paintSessionClock();
+};
+const setupSessionClock = () => {
+    clearInterval(sessionTicker);
+    const element = document.querySelector('[data-session-clock]');
+    if (!element) { sessionClock = null; return; }
+    sessionClock = { element, key: 'multi-loggia.session.' + element.dataset.sessionKey };
+    setSessionDeadline(Number(element.dataset.expiresAt), Number(element.dataset.serverNow));
+    sessionTicker = setInterval(paintSessionClock, 1000);
+};
+const updateSessionFromResponse = (response) => {
+    const expires = response.headers.get('X-Session-Expires-At');
+    const serverNow = response.headers.get('X-Session-Server-Time');
+    if (expires !== null && serverNow !== null) setSessionDeadline(Number(expires), Number(serverNow));
+};
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setupSessionClock);
+else setupSessionClock();
+document.addEventListener('livewire:navigated', setupSessionClock);
+document.addEventListener('visibilitychange', paintSessionClock);
+window.addEventListener('storage', (event) => {
+    if (!sessionClock || event.key !== sessionClock.key || !event.newValue) return;
+    try {
+        const next = JSON.parse(event.newValue);
+        if (Number.isFinite(next.expires) && Number.isFinite(next.offset)) {
+            sessionClock.expires = next.expires;
+            sessionClock.offset = next.offset;
+            paintSessionClock();
+        }
+    } catch (_) { /* Ignore malformed display state; the server still enforces expiry. */ }
+});
+document.addEventListener('livewire:init', () => {
+    window.Livewire.hook('request', ({ respond }) => respond(({ response }) => updateSessionFromResponse(response)));
 });

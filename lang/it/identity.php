@@ -1,8 +1,8 @@
 <?php
 
 return [
-    'roles' => ['administrator' => 'Amministratore di loggia', 'treasurer' => 'Tesoriere', 'brother' => 'Fratello'],
-    'permissions' => ['read' => 'Lettura', 'create' => 'Creazione', 'update' => 'Modifica', 'reverse' => 'Storno', 'export' => 'Esportazione', 'administration' => 'Amministrazione', 'reports' => 'Report'],
+    'roles' => ['administrator' => 'Amministratore di loggia', 'treasurer' => 'Tesoriere', 'brother' => 'Fratello', 'secretary' => 'Segretario', 'worshipful_master' => 'Maestro Venerabile'],
+    'permissions' => ['read' => 'Lettura', 'create' => 'Creazione', 'update' => 'Modifica', 'reverse' => 'Storno', 'export' => 'Esportazione', 'administration' => 'Amministrazione', 'reports' => 'Report', 'members' => ['manage' => 'Gestione anagrafiche'], 'financial' => ['read' => 'Lettura moduli finanziari']],
     'events' => [
         'treasury_account_created' => 'Conto o cassa aperto', 'treasury_category_created' => 'Categoria finanziaria inserita', 'treasury_posted' => 'Operazione finanziaria contabilizzata', 'treasury_reversed' => 'Operazione finanziaria stornata', 'treasury_statement_created' => 'Riga bancaria registrata', 'treasury_reconciled' => 'Movimento bancario riconciliato', 'treasury_reconciliation_released' => 'Abbinamento bancario rilasciato', 'treasury_import_confirmed' => 'Estratto conto importato', 'treasury_attachment_added' => 'Allegato finanziario salvato', 'treasury_attachment_downloaded' => 'Allegato finanziario scaricato', 'treasury_exported' => 'Registro finanziario esportato',
         'levy_program_created' => 'Programma canone inserito', 'levy_condition_created' => 'Condizione generale canone inserita', 'levy_override_created' => 'Deroga locale canone inserita', 'levy_generated' => 'Obblighi canoni generati', 'levy_payment_posted' => 'Pagamento canone confermato dalla Tesoreria',

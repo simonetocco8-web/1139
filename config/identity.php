@@ -10,10 +10,12 @@ return [
         'token' => env('SMS_TOKEN'),
         'sender' => env('SMS_SENDER'),
     ],
-    'permissions' => ['read', 'create', 'update', 'reverse', 'export', 'administration', 'reports'],
+    'permissions' => ['read', 'create', 'update', 'reverse', 'export', 'administration', 'reports', 'members.manage', 'financial.read'],
     'roles' => [
-        'administrator' => ['read', 'create', 'update', 'reverse', 'export', 'administration', 'reports'],
-        'treasurer' => ['read', 'create', 'update', 'reverse', 'export', 'reports'],
+        'administrator' => ['read', 'create', 'update', 'reverse', 'export', 'administration', 'reports', 'members.manage', 'financial.read'],
+        'treasurer' => ['read', 'create', 'update', 'reverse', 'export', 'reports', 'financial.read'],
         'brother' => ['read'],
+        'secretary' => ['read', 'members.manage', 'reports', 'export'],
+        'worshipful_master' => ['read', 'create', 'update', 'reverse', 'export', 'administration', 'reports', 'members.manage', 'financial.read'],
     ],
 ];

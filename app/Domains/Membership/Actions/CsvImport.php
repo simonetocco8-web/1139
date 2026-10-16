@@ -19,7 +19,7 @@ final class CsvImport
     /** @return array{token:string,batch:ImportBatch} */
     public function preview(int $lodgeId, string $csv): array
     {
-        $this->members->guard($lodgeId, 'administration');
+        $this->members->guard($lodgeId, 'members.manage');
         if (strlen($csv) > 262144 || ! mb_check_encoding($csv, 'UTF-8') || str_contains($csv, "\0")) {
             throw ValidationException::withMessages(['csv' => 'CSV UTF-8 richiesto, massimo 256 KiB e senza byte nulli.']);
         }
@@ -78,7 +78,7 @@ final class CsvImport
 
     public function find(int $lodgeId, string $token): ImportBatch
     {
-        $this->members->guard($lodgeId, 'administration');
+        $this->members->guard($lodgeId, 'members.manage');
         $nonce = session('member.import_nonce');
         abort_unless(is_string($nonce), 404);
 
@@ -88,7 +88,7 @@ final class CsvImport
 
     public function confirm(int $lodgeId, string $token): int
     {
-        $this->members->guard($lodgeId, 'administration');
+        $this->members->guard($lodgeId, 'members.manage');
 
         return DB::transaction(function () use ($lodgeId, $token): int {
             Lodge::query()->whereKey($lodgeId)->lockForUpdate()->firstOrFail();

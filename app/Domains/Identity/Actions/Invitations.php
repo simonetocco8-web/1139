@@ -41,7 +41,7 @@ final class Invitations
                 app(TenantContext::class)->assertTenant($lodgeId, 'administration');
             }
             if ($bootstrap) {
-                abort_if(DB::table('lodge_user_roles')->where('lodge_id', $lodgeId)->where('role', 'administrator')->exists()
+                abort_if(DB::table('lodge_user_roles')->where('lodge_id', $lodgeId)->whereIn('role', ['administrator', 'worshipful_master'])->exists()
                     || Invitation::query()->where('lodge_id', $lodgeId)->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now('UTC')->format('Y-m-d H:i:s.u'))->whereJsonContains('roles', 'administrator')->exists(), 403, 'Un amministratore è già stato predisposto.');
             }
 
@@ -187,7 +187,7 @@ final class Invitations
         }
         if ($invite->bootstrap) {
             abort_unless($issuer->is_platform_admin && $invite->email !== mb_strtolower(trim($issuer->email))
-                && ! DB::table('lodge_user_roles')->where('lodge_id', $invite->lodge_id)->where('role', 'administrator')->exists(), 403);
+                && ! DB::table('lodge_user_roles')->where('lodge_id', $invite->lodge_id)->whereIn('role', ['administrator', 'worshipful_master'])->exists(), 403);
         } else {
             abort_unless(app(TenantAccess::class)->ordinary($issuer, $invite->lodge_id, 'administration'), 403);
         }
