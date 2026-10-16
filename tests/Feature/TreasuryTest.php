@@ -85,6 +85,36 @@ class TreasuryTest extends TestCase
         $this->expense = $this->ledger->category($this->a->id, 'Spesa Fittizia', 'expense');
     }
 
+    public function test_manual_post_requires_category_and_transfer_target_without_recording_any_lines(): void
+    {
+        $count = Operation::query()->count();
+        $lines = Line::query()->count();
+        foreach ([['kind' => 'income', 'category_id' => ''], ['kind' => 'expense', 'category_id' => ''], ['kind' => 'transfer', 'target_id' => '']] as $values) {
+            $field = $values['kind'] === 'transfer' ? 'target_id' : 'category_id';
+            $this->from(route('treasury.form'))->post(route('treasury.post', $this->a->id), $values + ['confirmation' => '1', 'key' => $this->key(), 'account_id' => $this->bank->id, 'amount' => '12.50', 'booked_on' => '2026-10-15', 'description' => 'Operazione fittizia incompleta'])->assertRedirect(route('treasury.form'))->assertSessionHasErrors($field);
+        }
+        $this->assertSame($count, Operation::query()->count());
+        $this->assertSame($lines, Line::query()->count());
+    }
+
+    public function test_incompatible_category_returns_to_form_with_values_and_can_be_corrected(): void
+    {
+        $count = Operation::query()->count();
+        $key = $this->key();
+        $input = ['kind' => 'expense', 'category_id' => $this->income->id, 'confirmation' => '1', 'key' => $key, 'account_id' => $this->bank->id, 'target_id' => '', 'person_id' => '', 'structure_id' => '', 'amount' => '12.50', 'booked_on' => '2026-10-15', 'description' => 'Spesa fittizia da correggere'];
+        $this->from(route('treasury.form'))->post(route('treasury.post', $this->a->id), $input)->assertRedirect(route('treasury.form'))->assertSessionHasErrors('category_id')->assertSessionHasInput('key', $key)->assertSessionHasInput('kind', 'expense');
+        $this->assertSame($count, Operation::query()->count());
+        $this->get(route('treasury.form'))->assertOk()->assertSee($key)->assertSee('Spesa fittizia da correggere');
+        $input['category_id'] = $this->expense->id;
+        $response = $this->post(route('treasury.post', $this->a->id), $input);
+        $op = Operation::query()->where('idempotency_key', 'manual:'.$key)->firstOrFail();
+        $response->assertRedirect(route('treasury.detail', [$this->a->id, $op->id]));
+        $this->get($response->headers->get('Location'))->assertOk()->assertSee('Spesa fittizia da correggere');
+        $this->post(route('treasury.post', $this->a->id), $input)->assertRedirect(route('treasury.detail', [$this->a->id, $op->id]));
+        $this->assertSame($count + 1, Operation::query()->count());
+        $this->assertSame(98750, Balances::account($this->a->id, $this->bank->id));
+    }
+
     private function role(User $u, Lodge $l, string $role = 'administrator'): void
     {
         DB::table('lodge_user')->updateOrInsert(['lodge_id' => $l->id, 'user_id' => $u->id], ['is_active' => true]);

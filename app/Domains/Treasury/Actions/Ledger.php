@@ -76,7 +76,7 @@ final class Ledger
     /** @param array<string,mixed> $input */
     public function post(int $lodgeId, array $input, string $key): Operation
     {
-        $v = Validator::make($input, ['kind' => ['required', Rule::in(['income', 'expense', 'transfer', 'adjustment'])], 'account_id' => ['required', 'integer'], 'target_id' => ['nullable', 'integer'], 'amount' => ['required', 'string'], 'booked_on' => ['required', 'date_format:Y-m-d', 'before_or_equal:today', 'after_or_equal:2000-01-01'], 'description' => ['required', 'string', 'min:5', 'max:500'], 'category_id' => ['nullable', 'integer'], 'person_id' => ['nullable', 'integer'], 'structure_id' => ['nullable', 'integer']])->validate();
+        $v = Validator::make($input, ['kind' => ['required', Rule::in(['income', 'expense', 'transfer', 'adjustment'])], 'account_id' => ['required', 'integer'], 'target_id' => ['required_if:kind,transfer', 'nullable', 'integer'], 'amount' => ['required', 'string'], 'booked_on' => ['required', 'date_format:Y-m-d', 'before_or_equal:today', 'after_or_equal:2000-01-01'], 'description' => ['required', 'string', 'min:5', 'max:500'], 'category_id' => ['required_if:kind,income,expense', 'nullable', 'integer'], 'person_id' => ['nullable', 'integer'], 'structure_id' => ['nullable', 'integer']], ['category_id.required_if' => 'Seleziona una categoria per l’entrata o la spesa.', 'target_id.required_if' => 'Seleziona il conto di destinazione del giroconto.'])->validate();
         $permission = $v['kind'] === 'adjustment' ? 'reverse' : 'create';
         $source = $this->access->guard($lodgeId, $permission);
         $this->key($key);
@@ -90,7 +90,10 @@ final class Ledger
             $a = $this->access->account($lodgeId, (int) $v['account_id']);
             $cat = null;
             if (in_array($v['kind'], ['income', 'expense'], true)) {
-                $cat = Category::query()->where('lodge_id', $lodgeId)->whereKey($v['category_id'] ?? 0)->where('type', $v['kind'])->firstOrFail();
+                $cat = Category::query()->where('lodge_id', $lodgeId)->whereKey($v['category_id'])->firstOrFail();
+                if ($cat->type !== $v['kind']) {
+                    throw ValidationException::withMessages(['category_id' => 'Seleziona una categoria compatibile con il tipo di operazione: entrata o spesa.']);
+                }
             }
             $person = empty($v['person_id']) ? null : (int) $v['person_id'];
             $structure = empty($v['structure_id']) ? null : (int) $v['structure_id'];
