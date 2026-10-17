@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Capitations;
 
 use App\Domains\Capitations\Actions\Access;
+use App\Domains\Capitations\Actions\AdvanceGeneration;
 use App\Domains\Capitations\Actions\Balances;
 use App\Domains\Capitations\Actions\Generator;
 use App\Domains\Capitations\Actions\Payments;
@@ -37,6 +38,23 @@ final class Controller
         return view('capitations.plans', ['lodge' => $lodge, 'plans' => Plan::query()->where('lodge_id', $lodge->id)->with('versions')->orderBy('id')->get()]);
     }
 
+    public function advancePreview(Request $request, int $lodge, int $plan, AdvanceGeneration $advance): View
+    {
+        $v = $request->validate(['cycle' => ['required', 'date_format:Y-m-d']]);
+        $tenant = $this->access->guard($lodge, 'create');
+
+        return view('capitations.advance', ['lodge' => $tenant, 'preview' => $advance->preview($lodge, $plan, $v['cycle'])]);
+    }
+
+    public function advanceConfirm(Request $request, int $lodge, AdvanceGeneration $advance): RedirectResponse
+    {
+        $this->confirm($request);
+        $v = $request->validate(['token' => ['required', 'string']]);
+        $count = $advance->confirm($lodge, $v['token']);
+
+        return redirect()->route('capitations.report', 'future')->with('status', $count.' rate anticipate create. Nessun incasso o movimento finanziario registrato.');
+    }
+
     public function plan(Request $request, int $lodge, Plans $plans): RedirectResponse
     {
         $this->confirm($request);
@@ -50,7 +68,7 @@ final class Controller
         $this->confirm($request);
         $plans->revise($lodge, $plan, $request->all());
 
-        return back()->with('status', 'Versione futura inserita. Rate precedenti conservate.');
+        return back()->with('status', 'Versione futura inserita. Rate maturate conservate e rate anticipate aggiornate con rettifiche tracciate.');
     }
 
     public function generate(Request $request, int $lodge, Generator $generator): RedirectResponse
@@ -69,14 +87,19 @@ final class Controller
 
     public function report(Request $request, string $mode): View
     {
-        abort_unless(in_array($mode, ['scadenze', 'morosi', 'riepilogo'], true), 404);
+        abort_unless(in_array($mode, ['scadenze', 'morosi', 'riepilogo', 'future'], true), 404);
         $lodge = app(TenantContext::class)->resolve('reports');
         $this->access->guard($lodge->id, 'reports');
         $v = $request->validate(['from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:2101-12-31']]);
         $from = $v['from'] ?? ($mode === 'riepilogo' ? now()->startOfYear()->toDateString() : '2000-01-01');
-        $to = $v['to'] ?? ($mode === 'morosi' ? now()->toDateString() : ($mode === 'scadenze' ? '2101-12-31' : now()->endOfYear()->toDateString()));
+        $to = $v['to'] ?? ($mode === 'morosi' ? now()->toDateString() : (in_array($mode, ['scadenze', 'future'], true) ? '2101-12-31' : now()->endOfYear()->toDateString()));
         abort_if($from > $to, 422);
         $q = $this->access->installments($lodge->id)->with('person');
+        if ($mode === 'future') {
+            $q->where('period_start', '>', now()->toDateString());
+        } else {
+            $q->where('period_start', '<=', now()->toDateString());
+        }
         $column = $mode === 'riepilogo' ? 'period_start' : 'due_on';
         $q->whereBetween($column, [$from, $to]);
         if ($mode === 'morosi') {
@@ -124,7 +147,7 @@ final class Controller
 
         $canReceive = $staff && app(TenantAccess::class)->allows(VerifiedSession::user(), $lodgeId, 'create');
 
-        return view('capitations.person', ['lodge' => $lodge, 'person' => $person, 'staff' => $staff, 'totals' => $this->totals(clone $query), 'credit' => $credit, 'receipts' => $receipts, 'installments' => $query->with('corrections')->orderBy('due_on')->orderBy('id')->paginate(20),
+        return view('capitations.person', ['lodge' => $lodge, 'person' => $person, 'staff' => $staff, 'totals' => $this->totals((clone $query)->where('period_start', '<=', now()->toDateString())), 'credit' => $credit, 'receipts' => $receipts, 'installments' => $query->with('corrections')->orderBy('due_on')->orderBy('id')->paginate(20),
             'plans' => $staff ? Plan::query()->where('lodge_id', $lodgeId)->get() : collect(), 'rules' => $staff ? PersonRule::query()->where('lodge_id', $lodgeId)->where('person_id', $id)->orderByDesc('id')->get() : collect(),
             'accounts' => $canReceive ? $gateway->accounts($lodgeId) : [], 'treasuryAvailable' => $canReceive && $gateway->available()]);
     }
@@ -147,7 +170,7 @@ final class Controller
         $r->validate(['plan_id' => ['required', 'integer']]);
         $plans->rule($lodge, $r->integer('plan_id'), $person, $r->all());
 
-        return back()->with('status', 'Condizione individuale inserita.');
+        return back()->with('status', 'Condizione individuale inserita. Le rate anticipate interessate sono state ricalcolate in modo tracciato.');
     }
 
     public function correction(Request $r, int $lodge, int $installment, Payments $payments): RedirectResponse

@@ -10,6 +10,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -26,6 +27,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [RequireSecureTransport::class, RenewAuthenticatedActivity::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->render(function (HttpExceptionInterface $error, Request $request) {
+            if (($error->getHeaders()['X-Session-Expired'] ?? null) === '1' && ! $request->expectsJson()) {
+                return response()->view('identity.session-expired', [], $error->getStatusCode(), $error->getHeaders());
+            }
+
+            return null;
+        });
         $exceptions->report(function (QueryException $error): bool {
             Log::error('Operazione di persistenza non completata.', ['sql_state' => $error->errorInfo[0] ?? 'unknown']);
 

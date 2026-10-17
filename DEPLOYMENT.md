@@ -147,3 +147,7 @@ Questo rilascio aggiunge la migrazione `2026_10_16_100000_add_secretary_and_wors
 Il Segretario gestisce anagrafiche, importazione/esportazione iscritti e report; non amministra accessi, impostazioni o operazioni finanziarie. Il Maestro Venerabile dispone degli stessi permessi locali dell’amministratore. La combinazione di più ruoli somma i permessi nella sola loggia autorizzata.
 
 `SESSION_LIFETIME` indica i minuti di inattività: ogni richiesta autenticata valida rinnova la scadenza. Il countdown in topbar è una visualizzazione della scadenza server, aggiornata anche dalle risposte Livewire; non invia heartbeat. Il requisito di OTP negli ultimi cinque minuti per le operazioni sensibili rimane indipendente dall’attività. Collaudare navigazione, operazioni Livewire, inattività, revoca e più schede sul dominio HTTPS dopo la distribuzione.
+
+## Rilascio rate anticipate ed esenzioni
+
+Vedere [CAPITAZIONI_ANTICIPATE.md](docs/CAPITAZIONI_ANTICIPATE.md) per la migrazione del 17 ottobre 2026, il backfill delle esenzioni storiche, le procedure di collaudo e la gestione delle rettifiche delle sole rate future. Distribuire anche gli asset aggiornati: il mascheramento della pagina a sessione scaduta richiede il nuovo JavaScript. Prima del rilascio verificare su staging le esenzioni preesistenti, fare backup e concordare le date storiche non ricostruibili dai vecchi flag. Non distribuire il nuovo codice di generazione senza aver applicato la migrazione.

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domains\Capitations\Actions\AdvanceGeneration;
 use App\Domains\Capitations\Actions\Balances;
 use App\Domains\Capitations\Actions\Generator;
 use App\Domains\Capitations\Actions\Payments;
@@ -17,6 +18,7 @@ use App\Domains\Membership\Models\Person;
 use App\Domains\Organization\Models\Lodge;
 use App\Domains\Organization\Models\Obedience;
 use App\Domains\Organization\Models\Rite;
+use App\Domains\Reports\Sources;
 use App\Domains\Treasury\Adapters\TreasuryUnavailable;
 use App\Domains\Treasury\Adapters\UnavailableReceiptGateway;
 use App\Domains\Treasury\Contracts\ReceiptGateway;
@@ -69,6 +71,174 @@ class CapitationTest extends TestCase
         $this->plans = app(Plans::class);
         $this->gateway = new FakeReceiptGateway;
         app()->instance(ReceiptGateway::class, $this->gateway);
+    }
+
+    public function test_advance_preview_confirm_is_idempotent_and_never_posts_financial_movements(): void
+    {
+        $plan = $this->plan(['periodicity' => 'semiannual', 'starts_on' => '2027-01-01']);
+        $advance = app(AdvanceGeneration::class);
+        $preview = $advance->preview($this->a->id, $plan->id, '2027-01-01');
+        $this->assertCount(1, $preview['rows']);
+        $this->assertSame('100.00', $preview['rows'][0]['candidate']['original_amount']);
+        $this->assertDatabaseCount('capitation_installments', 0);
+        $this->assertSame(1, $advance->confirm($this->a->id, $preview['token']));
+        $this->assertSame(0, $advance->confirm($this->a->id, $preview['token']));
+        $again = $advance->preview($this->a->id, $plan->id, '2027-01-01');
+        $this->assertSame(0, $advance->confirm($this->a->id, $again['token']));
+        $rate = Installment::query()->firstOrFail();
+        $this->assertSame('future', Balances::installment($rate)['status']);
+        $this->assertTrue($rate->snapshot['generated_early']);
+        $this->assertSame(0, $this->generator->run($this->a->id, '2026-10-14'));
+        $this->assertDatabaseCount('treasury_operations', 0);
+        $this->assertDatabaseCount('capitation_receipts', 0);
+        $this->get(route('capitations.report', 'morosi'))->assertOk()->assertDontSee('Rata #'.$rate->id);
+        $this->get(route('capitations.report', 'future'))->assertOk()->assertSee('Rata #'.$rate->id);
+        $totals = app(Sources::class)->debtTotals(app(Sources::class)->rates($this->a->id));
+        $this->assertSame(0, $totals['residual']);
+        $this->travelTo(CarbonImmutable::parse('2027-01-01 12:00', 'Europe/Rome'));
+        $this->assertSame(0, $this->generator->run($this->a->id, '2027-01-01'));
+        $this->assertSame('due', Balances::installment($rate)['status']);
+    }
+
+    public function test_advance_generation_requires_confirmation_and_rechecks_tenant_and_permissions(): void
+    {
+        $plan = $this->plan(['starts_on' => '2027-01-01']);
+        $url = route('capitations.advance.preview', [$this->a->id, $plan->id]);
+        $this->get($url.'?cycle=2027-01-01')->assertOk()->assertSee('Anteprima rate anticipate');
+        $token = session('capitation.advance.token');
+        $this->post(route('capitations.advance.confirm', $this->a->id), ['token' => $token])->assertSessionHasErrors('confirmation');
+        $this->assertDatabaseCount('capitation_installments', 0);
+        $this->post(route('capitations.advance.confirm', $this->b->id), ['token' => $token, 'confirmation' => '1'])->assertStatus(409);
+        $this->assertDatabaseCount('capitation_installments', 0);
+        DB::table('lodge_user_roles')->where('user_id', $this->admin->id)->where('lodge_id', $this->a->id)->update(['role' => 'brother']);
+        $this->post(route('capitations.advance.confirm', $this->a->id), ['token' => $token, 'confirmation' => '1'])->assertForbidden();
+    }
+
+    public function test_changed_or_expired_advance_preview_cannot_be_confirmed(): void
+    {
+        $plan = $this->plan(['starts_on' => '2027-01-01']);
+        $advance = app(AdvanceGeneration::class);
+        $preview = $advance->preview($this->a->id, $plan->id, '2027-01-01');
+        $this->plans->rule($this->a->id, $plan->id, $this->person->id, ['effective_on' => '2027-01-01', 'kind' => 'discount', 'discount_percent' => '50', 'reason' => 'Sconto fittizio futuro']);
+        try {
+            $advance->confirm($this->a->id, $preview['token']);
+            $this->fail('Anteprima modificata accettata.');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('preview', $e->errors());
+        }
+        $preview = $advance->preview($this->a->id, $plan->id, '2027-01-01');
+        $this->assertSame('50.00', $preview['rows'][0]['candidate']['original_amount']);
+        $this->travel(16)->minutes();
+        $this->expectException(ValidationException::class);
+        $advance->confirm($this->a->id, $preview['token']);
+    }
+
+    public function test_advance_conditions_changes_are_detected_without_rewriting_rates(): void
+    {
+        $plan = $this->plan(['starts_on' => '2026-01-01']);
+        $advance = app(AdvanceGeneration::class);
+        $preview = $advance->preview($this->a->id, $plan->id, '2027-01-01');
+        $advance->confirm($this->a->id, $preview['token']);
+        $rate = Installment::query()->firstOrFail();
+        $this->assertFalse($advance->changed($rate));
+        $this->plans->revise($this->a->id, $plan->id, $this->values(['effective_on' => '2027-01-01', 'amount' => '150.00', 'due_days' => 10]));
+        $this->assertFalse($advance->changed($rate->fresh()));
+        $this->assertSame(15000, Balances::installment($rate->fresh())['due']);
+        $this->assertDatabaseCount('capitation_corrections', 1);
+        $this->assertSame('100.00', $rate->fresh()->original_amount);
+        $this->assertSame('2027-01-11', $rate->fresh()->due_on->toDateString());
+        $this->assertSame('2027-01-01', $rate->fresh()->snapshot['original_due_on']);
+        $next = $advance->preview($this->a->id, $plan->id, '2027-01-01');
+        $this->assertTrue($next['rows'][0]['changed']);
+        $this->assertSame(0, $advance->confirm($this->a->id, $next['token']));
+        $this->assertDatabaseCount('capitation_installments', 1);
+    }
+
+    public function test_future_preview_applies_enrollment_dates_exemptions_and_daily_prorata(): void
+    {
+        $plan = $this->plan(['starts_on' => '2027-01-01', 'periodicity' => 'semiannual', 'prorata' => 'daily']);
+        $joined = $this->person('JOIN_FUTURE', '2027-03-01');
+        $this->person('TOO_LATE', '2027-07-01');
+        $sleeping = $this->person('SLEEPING', '2026-01-01', status: 'suspended');
+        $this->assertTrue($sleeping->enrollments()->firstOrFail()->administrative_exemption);
+        $preview = app(AdvanceGeneration::class)->preview($this->a->id, $plan->id, '2027-01-01');
+        $rows = collect($preview['rows'])->keyBy('person_id');
+        $this->assertCount(2, $rows);
+        $this->assertSame('67.40', $rows[$joined->id]['candidate']['original_amount']);
+    }
+
+    public function test_administrative_exemption_periods_survive_reactivation_and_do_not_recreate_skipped_cycles(): void
+    {
+        $plan = $this->plan();
+        $this->generator->run($this->a->id, '2026-01-01');
+        $enrollment = $this->person->enrollments()->firstOrFail();
+        $this->travelTo(CarbonImmutable::parse('2026-03-01 12:00', 'Europe/Rome'));
+        $enrollment->update(['administrative_exemption' => true, 'exemption_reason' => 'Esenzione fittizia temporanea']);
+        $this->assertSame(1, $this->generator->run($this->a->id, '2026-03-01')); // February only.
+        $this->travelTo(CarbonImmutable::parse('2026-10-01 12:00', 'Europe/Rome'));
+        $enrollment->update(['administrative_exemption' => false]);
+        $this->assertSame(1, $this->generator->run($this->a->id, '2026-10-01')); // October only.
+        $this->assertSame(['2026-01-01', '2026-02-01', '2026-10-01'], Installment::query()->where('plan_id', $plan->id)->orderBy('period_start')->get()->map(fn ($i) => $i->period_start->toDateString())->all());
+        $this->assertDatabaseCount('member_exemption_periods', 1);
+        $enrollment->update(['status' => 'suspended', 'administrative_exemption' => false]);
+        $this->assertTrue($enrollment->fresh()->administrative_exemption);
+        $this->travelTo(CarbonImmutable::parse('2026-11-01 12:00', 'Europe/Rome'));
+        $this->assertSame(0, $this->generator->run($this->a->id, '2026-11-01'));
+    }
+
+    /** @return array<string,array{string,string}> */
+    public static function futurePeriodicities(): array
+    {
+        return ['mensile' => ['monthly', '2027-01-31'], 'trimestrale' => ['quarterly', '2027-03-31'], 'semestrale' => ['semiannual', '2027-06-30'], 'annuale' => ['annual', '2027-12-31']];
+    }
+
+    #[DataProvider('futurePeriodicities')]
+    public function test_future_cycles_use_the_same_calendar_and_due_rules(string $periodicity, string $end): void
+    {
+        $plan = $this->plan(['periodicity' => $periodicity, 'starts_on' => '2027-01-01', 'due_basis' => 'end', 'due_days' => 5]);
+        $preview = app(AdvanceGeneration::class)->preview($this->a->id, $plan->id, '2027-01-01');
+        $this->assertSame($end, $preview['rows'][0]['candidate']['period_end']);
+        $this->assertSame(CarbonImmutable::parse($end)->addDays(5)->toDateString(), $preview['rows'][0]['candidate']['due_on']);
+    }
+
+    public function test_exemption_revises_future_rates_and_releases_credit_without_touching_matured_rates(): void
+    {
+        $plan = $this->plan();
+        $historic = $this->due($plan);
+        $advance = app(AdvanceGeneration::class);
+        $preview = $advance->preview($this->a->id, $plan->id, '2027-01-01');
+        $advance->confirm($this->a->id, $preview['token']);
+        $future = Installment::query()->where('period_start', '2027-01-01')->firstOrFail();
+        $receipt = app(Payments::class)->receive($this->a->id, $this->person->id, '100.00', '2026-10-14', 'cash-'.$this->a->id, $this->keyForAdvance(), [$future->id => '100.00']);
+        $enrollment = $this->person->enrollments()->firstOrFail();
+        app(Members::class)->enrollment($this->a->id, $this->person->id, ['version' => $enrollment->version, 'starts_on' => '2026-01-01', 'status' => 'suspended', 'administrative_exemption' => false], $enrollment->id);
+        $this->assertTrue($enrollment->fresh()->administrative_exemption);
+        $this->assertSame(0, Balances::installment($future->fresh())['due']);
+        $this->assertSame(0, Balances::installment($future->fresh())['paid']);
+        $this->assertSame(10000, Balances::credit($receipt->fresh()));
+        $this->assertSame(10000, Balances::installment($historic->fresh())['due']);
+        $this->assertDatabaseCount('capitation_receipts', 1);
+        $this->assertDatabaseCount('capitation_corrections', 1);
+        $this->assertDatabaseCount('treasury_operations', 0);
+    }
+
+    private function keyForAdvance(): string
+    {
+        return bin2hex(random_bytes(16));
+    }
+
+    public function test_exemption_migration_backfill_is_repeatable_and_never_changes_financial_history(): void
+    {
+        $rate = $this->due();
+        $enrollment = $this->person->enrollments()->firstOrFail();
+        DB::table('member_enrollments')->where('id', $enrollment->id)->update(['status' => 'suspended', 'administrative_exemption' => false]);
+        $migration = require database_path('migrations/2026_10_17_100000_track_membership_exemption_periods.php');
+        $migration->up();
+        $migration->up();
+        $this->assertTrue($enrollment->fresh()->administrative_exemption);
+        $this->assertDatabaseCount('member_exemption_periods', 1);
+        $this->assertSame('100.00', $rate->fresh()->original_amount);
+        $this->assertDatabaseCount('capitation_corrections', 0);
     }
 
     private function role(User $u, Lodge $l, string $role): void

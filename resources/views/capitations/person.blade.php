@@ -4,6 +4,7 @@
 @php($financeAccess=app(\App\Domains\Identity\Authorization\TenantAccess::class))
 @include('capitations.nav')
 <div class="mb-5"><h2 class="text-xl font-semibold">{{ $person->last_name }} {{ $person->first_name }}</h2><p class="mt-2 text-sm text-slate-600">{{ $person->reference }} · Solo dati di {{ $lodge->name }}</p></div>
+<p class="mb-4 text-sm text-slate-600">I totali seguenti riguardano le quote maturate. Le eventuali rate future sono contrassegnate nell’elenco e non costituiscono arretrati.</p>
 @include('capitations.totals')
 <p class="mb-6 rounded-xl bg-teal-50 p-4 font-semibold">Credito disponibile attuale: {{ \App\Domains\Capitations\Money::display($credit) }}</p><p class="mb-5 text-sm text-slate-600">Il credito resta disponibile fino all’imputazione alle rate: non viene compensato automaticamente.</p>
 <h2 class="mb-4 text-xl font-semibold">Rate e scadenze</h2>@forelse($installments as $installment)@include('capitations.installment')@empty<p class="mb-5 rounded-xl bg-white p-5">Nessuna rata maturata.</p>@endforelse<div class="mb-6">{{ $installments->links() }}</div>

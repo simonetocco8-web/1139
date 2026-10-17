@@ -2,6 +2,7 @@
 
 namespace App\Domains\Membership\Actions;
 
+use App\Domains\Capitations\Actions\ForecastSync;
 use App\Domains\Identity\Audit;
 use App\Domains\Identity\Authorization\TenantAccess;
 use App\Domains\Identity\Authorization\TenantContext;
@@ -83,6 +84,13 @@ final class Members
         }
         if (in_array($input['status'] ?? null, ['active', 'suspended'], true)) {
             $input['ends_on'] = null;
+        }
+        if (in_array($input['status'] ?? null, ['suspended', 'ended'], true)) {
+            $input['administrative_exemption'] = true;
+            $input['exemption_reason'] = $input['exemption_reason'] ?? 'Esenzione prevista dallo stato amministrativo.';
+            if ($input['exemption_reason'] === '') {
+                $input['exemption_reason'] = 'Esenzione prevista dallo stato amministrativo.';
+            }
         }
         $values = Validator::make($input, [
             'starts_on' => ['required', 'date_format:Y-m-d'], 'ends_on' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:starts_on'],
@@ -185,6 +193,7 @@ final class Members
 
     public function history(Person $person, string $event): void
     {
+        app(ForecastSync::class)->sync($person->lodge_id, VerifiedSession::user()->id, $person->id);
         MemberHistory::query()->create(['lodge_id' => $person->lodge_id, 'person_id' => $person->id, 'actor_id' => VerifiedSession::user()->id, 'event' => $event,
             'snapshot' => ['person' => $person->attributesToArray(), 'enrollments' => $person->enrollments()->get()->map(fn ($e) => $e->attributesToArray())->all()], 'occurred_at' => now('UTC')]);
         Audit::record('membership.'.$event, VerifiedSession::user()->id, $person->lodge_id, metadata: ['person_id' => $person->id]);

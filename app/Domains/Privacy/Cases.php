@@ -61,7 +61,7 @@ final class Cases
             $receipts = Receipt::query()->where('lodge_id', $lodge)->where('person_id', $p->id)->get()->map(fn ($r) => ['id' => $r->id, 'data' => $r->received_on->toDateString(), 'importo' => $r->amount, 'stornato' => $r->isVoided()])->all();
             Audit::record('privacy.data.exported', VerifiedSession::user()->id, $lodge, metadata: ['person_id' => $p->id]);
 
-            return ['ambito' => 'Dati della sola persona nella loggia autorizzata; documenti con dati di terzi richiedono revisione separata.', 'generato' => now()->format('d/m/Y H:i'), 'persona' => $p->only(['id', 'reference', 'first_name', 'last_name', 'birth_date', 'email', 'phone', 'address']), 'iscrizioni' => $p->enrollments()->get()->map(fn ($e) => $e->only(['starts_on', 'ends_on', 'status', 'administrative_exemption', 'exemption_reason']))->all(), 'rate' => $rates, 'versamenti' => $receipts];
+            return ['ambito' => 'Dati della sola persona nella loggia autorizzata; documenti con dati di terzi richiedono revisione separata.', 'generato' => now()->format('d/m/Y H:i'), 'persona' => $p->only(['id', 'reference', 'first_name', 'last_name', 'birth_date', 'email', 'phone', 'address']), 'iscrizioni' => $p->enrollments()->get()->map(fn ($e) => $e->only(['starts_on', 'ends_on', 'status', 'administrative_exemption', 'exemption_reason']))->all(), 'periodi_esenzione' => DB::table('member_exemption_periods')->where('lodge_id', $lodge)->whereIn('enrollment_id', $p->enrollments()->select('id'))->orderBy('starts_on')->get(['enrollment_id', 'starts_on', 'ends_on'])->toArray(), 'rate' => $rates, 'versamenti' => $receipts];
         });
     }
 
@@ -96,6 +96,7 @@ final class Cases
             DB::table('privacy_requests')->where('lodge_id', $lodge)->where('person_id', $p->id)->update(['person_id' => null]);
             DB::table('identity_invitations')->where('lodge_id', $lodge)->where('person_id', $p->id)->delete();
             DB::table('member_history')->where('lodge_id', $lodge)->where('person_id', $p->id)->delete();
+            DB::table('member_exemption_periods')->where('lodge_id', $lodge)->whereIn('enrollment_id', $p->enrollments()->select('id'))->delete();
             DB::table('member_enrollments')->where('lodge_id', $lodge)->where('person_id', $p->id)->delete();
             DB::table('member_people')->where('lodge_id', $lodge)->where('id', $p->id)->delete();
             if ($p->user_id !== null) {

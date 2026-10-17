@@ -4,7 +4,7 @@
     <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow"><title>Gestionale Multi-Loggia · Area riservata</title>
     @vite(['resources/css/app.css', 'resources/js/app.js']) @livewireStyles
-</head>
+<x-favicon/></head>
 <body class="min-h-screen bg-slate-50 font-sans text-slate-900">
 <a class="sr-only focus:not-sr-only focus:fixed focus:z-50 focus:bg-white focus:p-4" href="#contenuto">Vai al contenuto</a>
 @php
@@ -17,7 +17,7 @@ $finance = $staff && $access->allows($user, $currentLodge->id, 'financial.read')
 $canAdmin = $currentLodge && $access->allows($user, $currentLodge->id, 'administration');
 $canReport = $staff && $access->allows($user, $currentLodge->id, 'reports');
 @endphp
-<div class="lg:grid lg:min-h-screen lg:grid-cols-[17rem_1fr]">
+<div data-private-content class="lg:grid lg:min-h-screen lg:grid-cols-[17rem_1fr]">
     <aside class="border-b border-slate-200 bg-white p-4 lg:border-r lg:border-b-0 lg:p-5">
         <div class="flex items-center justify-between gap-3"><a href="{{ route('dashboard') }}" class="flex min-h-12 items-center gap-3 rounded font-semibold focus-visible:outline-2 focus-visible:outline-teal-700"><span class="flex size-10 items-center justify-center rounded-xl bg-teal-800 text-xl text-white" aria-hidden="true">M</span>Multi-Loggia</a><button type="button" data-menu-toggle hidden aria-controls="app-navigation" aria-expanded="false" class="min-h-11 rounded-xl border border-slate-300 px-4 text-sm font-semibold lg:hidden">Menu</button></div>
         <nav id="app-navigation" aria-label="Navigazione del gestionale" class="mt-6 hidden flex-col gap-5 lg:flex">
@@ -84,6 +84,7 @@ $canReport = $staff && $access->allows($user, $currentLodge->id, 'reports');
         <main id="contenuto" class="mx-auto max-w-6xl px-5 py-8 lg:px-9" tabindex="-1">{{ $slot }}</main>
     </div>
 </div>
+<section data-session-lock hidden class="fixed inset-0 z-50 flex min-h-screen items-center justify-center bg-slate-50 p-5" role="alert" tabindex="-1"><div class="max-w-md rounded-2xl bg-white p-8 text-center shadow"><h1 class="text-2xl font-bold">Sessione scaduta</h1><p class="my-5">Per proteggere i tuoi dati, il contenuto della pagina è stato chiuso. Accedi nuovamente per continuare.</p><a href="{{ route('login') }}" class="inline-flex min-h-12 items-center rounded-xl bg-teal-800 px-5 font-semibold text-white">Torna al login</a></div></section>
 <noscript><style>#app-navigation{display:flex}</style></noscript>
 @livewireScripts
 </body></html>

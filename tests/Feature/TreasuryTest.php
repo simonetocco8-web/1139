@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domains\Capitations\Actions\AdvanceGeneration;
 use App\Domains\Capitations\Actions\Balances as CapBalances;
 use App\Domains\Capitations\Actions\Generator as CapGenerator;
 use App\Domains\Capitations\Actions\Payments as Capit;
@@ -139,6 +140,28 @@ class TreasuryTest extends TestCase
         $this->assertStringContainsString('La data dello storno non può precedere', session('errors')->first('booked_on'));
         $this->assertSame($count, Operation::query()->count());
         $this->assertSame(101250, Balances::account($this->a->id, $this->bank->id));
+    }
+
+    public function test_future_exemption_releases_allocations_without_reposting_the_real_receipt(): void
+    {
+        $person = $this->person();
+        $plan = app(Plans::class)->create($this->a->id, ['description' => 'Piano Futuro Fittizio', 'amount' => '100.00', 'periodicity' => 'semiannual', 'starts_on' => '2027-01-01', 'due_basis' => 'start', 'due_days' => 0, 'prorata' => 'none', 'is_active' => true]);
+        $advance = app(AdvanceGeneration::class);
+        $preview = $advance->preview($this->a->id, $plan->id, '2027-01-01');
+        $advance->confirm($this->a->id, $preview['token']);
+        $rate = Installment::query()->where('plan_id', $plan->id)->firstOrFail();
+        $receipt = app(Capit::class)->receive($this->a->id, $person->id, '100.00', '2026-10-15', (string) $this->bank->id, $this->key(), [$rate->id => '100.00']);
+        $count = Operation::query()->count();
+        $enrollment = $person->enrollments()->firstOrFail();
+        app(Members::class)->enrollment($this->a->id, $person->id, ['version' => $enrollment->version, 'starts_on' => '2026-01-01', 'status' => 'active', 'administrative_exemption' => true, 'exemption_reason' => 'Esenzione fittizia temporanea'], $enrollment->id);
+        $this->assertSame($count, Operation::query()->count());
+        $this->assertSame(110000, Balances::account($this->a->id, $this->bank->id));
+        $this->assertSame(10000, CapBalances::credit($receipt->fresh()));
+        $this->assertSame(0, CapBalances::installment($rate->fresh())['due']);
+        $op = Operation::query()->where('public_id', $receipt->operation_reference)->firstOrFail();
+        $this->ledger->reverse($this->a->id, $op->id, '2026-10-15', 'Rimborso Fittizio separato', $this->key());
+        $this->assertSame(100000, Balances::account($this->a->id, $this->bank->id));
+        $this->assertSame(0, CapBalances::credit($receipt->fresh()));
     }
 
     private function role(User $u, Lodge $l, string $role = 'administrator'): void

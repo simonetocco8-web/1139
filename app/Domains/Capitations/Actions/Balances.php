@@ -22,6 +22,10 @@ final class Balances
         $overdue = $i->due_on->toDateString() < now()->toDateString();
         $status = $due === 0 ? 'zero' : ($residual === 0 ? 'paid' : ($overdue ? ($paid > 0 ? 'overdue_partial' : 'overdue') : ($paid > 0 ? 'partial' : 'due')));
 
+        if ($i->period_start->toDateString() > now()->toDateString()) {
+            $status = 'future';
+        }
+
         return compact('original', 'correction', 'due', 'paid', 'residual', 'status');
     }
 

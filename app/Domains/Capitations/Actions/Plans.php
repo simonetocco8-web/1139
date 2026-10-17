@@ -51,6 +51,7 @@ final class Plans
             $this->boundary($plan, $v['effective_on']);
             abort_if($plan->versions()->where('effective_on', $v['effective_on'])->exists(), 409, 'Una versione esiste già per questo ciclo.');
             PlanVersion::query()->create($this->economic($input) + ['lodge_id' => $lodgeId, 'plan_id' => $id, 'effective_on' => $v['effective_on'], 'created_at' => now('UTC')]);
+            app(ForecastSync::class)->sync($lodgeId, VerifiedSession::user()->id, planId: $id);
             Audit::record('capitation.plan.revised', VerifiedSession::user()->id, $lodgeId, metadata: ['plan_id' => $id]);
         }, 3);
     }
@@ -85,6 +86,7 @@ final class Plans
                 }
             }
             PersonRule::query()->create($v + ['lodge_id' => $lodgeId, 'plan_id' => $planId, 'person_id' => $personId, 'amount' => $amount, 'discount_bps' => $bps, 'created_at' => now('UTC')]);
+            app(ForecastSync::class)->sync($lodgeId, VerifiedSession::user()->id, $personId, $planId);
             Audit::record('capitation.rule.created', VerifiedSession::user()->id, $lodgeId, metadata: ['plan_id' => $planId, 'person_id' => $personId]);
         }, 3);
     }

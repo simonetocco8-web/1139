@@ -8,7 +8,7 @@
     <title>{{ config('app.name') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
-</head>
+<x-favicon/></head>
 <body class="min-h-screen bg-slate-50 font-sans text-slate-900 antialiased">
 <a href="#contenuto" class="sr-only focus:not-sr-only focus:fixed focus:z-50 focus:rounded focus:bg-white focus:p-4">Vai al contenuto</a>
 <div class="min-h-screen lg:grid lg:grid-cols-[17rem_1fr]">

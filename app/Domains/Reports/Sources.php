@@ -16,7 +16,7 @@ final class Sources
     // Callers authorize the selected tenant before using these internal source queries.
     public function rates(int $lodgeId, ?int $personId = null): Builder
     {
-        $q = Installment::query()->where('lodge_id', $lodgeId);
+        $q = Installment::query()->where('lodge_id', $lodgeId)->where('period_start', '<=', now()->toDateString());
         if ($personId !== null) {
             $q->where('person_id', $personId);
         }

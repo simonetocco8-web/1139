@@ -10,7 +10,7 @@ final class VerifiedSession
     public static function user(): User
     {
         $authenticated = Auth::user();
-        abort_unless($authenticated instanceof User, 401, 'Accesso riservato.');
+        abort_unless($authenticated instanceof User, 401, 'Accesso riservato.', ['X-Session-Expired' => '1']);
         $user = User::query()->find($authenticated->id);
         $verifiedAt = session('auth.second_factor_verified_at');
         $activityAt = session('auth.last_activity_at', $verifiedAt);
@@ -26,7 +26,7 @@ final class VerifiedSession
             Auth::logout();
             session()->invalidate();
             session()->regenerateToken();
-            abort(403, 'Sessione non valida. Accedi nuovamente con secondo fattore.');
+            abort(403, 'Sessione non valida. Accedi nuovamente con secondo fattore.', ['X-Session-Expired' => '1']);
         }
 
         return $user;

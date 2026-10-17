@@ -50,14 +50,14 @@ class NavigationSessionTest extends TestCase
         $this->assertSame($otpAt, session('auth.second_factor_verified_at'));
         $this->post('/account/recapito', ['channel' => 'email', 'target' => 'nuovo@example.invalid', 'password' => 'password'])->assertForbidden();
         $this->travel(31)->minutes();
-        $this->get('/dashboard')->assertForbidden();
+        $this->get('/dashboard')->assertForbidden()->assertHeader('X-Session-Expired', '1')->assertSee('Sessione scaduta')->assertSee('Torna al login')->assertDontSee('Loggia Fittizia Navigazione');
         $this->assertGuest();
     }
 
     public function test_expired_or_future_activity_cannot_be_revived_by_a_page_request(): void
     {
         session()->put('auth.last_activity_at', now('UTC')->addMinute()->getTimestamp());
-        $this->get('/dashboard')->assertForbidden();
+        $this->get('/dashboard')->assertForbidden()->assertHeader('X-Session-Expired', '1')->assertSee('Sessione scaduta')->assertSee('Torna al login')->assertDontSee('Loggia Fittizia Navigazione');
         $this->assertGuest();
     }
 
@@ -81,6 +81,15 @@ class NavigationSessionTest extends TestCase
     public function test_category_form_is_rendered_and_structure_label_is_explicit(): void
     {
         $this->get('/loggia/tesoreria/nuova')->assertOk()->assertSee('Nome categoria')->assertSee('name="name"', false)->assertDontSee("@include('treasury.input'", false)->assertSee('Movimento da/verso Sovrastruttura (opzionale)');
+    }
+
+    public function test_horizontal_report_navigation_preserves_urls_and_has_icons(): void
+    {
+        $html = $this->get(route('reports.show', [$this->lodge->id, 'financial']))->assertOk()->getContent();
+        preg_match('~<nav data-report-nav.*?</nav>~s', $html, $match);
+        $this->assertStringContainsString('href="'.route('reports.dashboard', $this->lodge->id).'"', $match[0]);
+        $this->assertStringContainsString('<svg', $match[0]);
+        $this->get('/loggia/tesoreria')->assertOk()->assertSee('Registro cronologico delle operazioni di tesoreria')->assertDontSee('Dettaglio operazione');
     }
 
     public function test_new_roles_are_persisted_and_remain_local(): void

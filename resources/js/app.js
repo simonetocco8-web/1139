@@ -80,6 +80,15 @@ document.addEventListener('change', (event) => {
 });
 
 // The clock displays server activity deadlines; it never sends keep-alive requests.
+let sessionLocked = false;
+const lockExpiredSession = () => {
+    if (sessionLocked) return;
+    sessionLocked = true;
+    document.querySelectorAll('[data-private-content]').forEach((element) => element.replaceChildren());
+    const notice = document.querySelector('[data-session-lock]');
+    if (notice) { notice.hidden = false; notice.focus(); }
+    document.title = 'Sessione scaduta';
+};
 let sessionClock = null;
 let sessionTicker = null;
 const paintSessionClock = () => {
@@ -90,6 +99,7 @@ const paintSessionClock = () => {
     sessionClock.element.querySelector('[data-session-expired]').hidden = remaining !== 0;
     sessionClock.element.classList.toggle('text-amber-900', remaining > 0 && remaining <= 120);
     sessionClock.element.classList.toggle('text-red-800', remaining === 0);
+    if (remaining === 0) lockExpiredSession();
 };
 const setSessionDeadline = (expires, serverNow, publish = true) => {
     if (!sessionClock || !Number.isFinite(expires) || !Number.isFinite(serverNow)) return;
@@ -106,10 +116,20 @@ const setupSessionClock = () => {
     const element = document.querySelector('[data-session-clock]');
     if (!element) { sessionClock = null; return; }
     sessionClock = { element, key: 'multi-loggia.session.' + element.dataset.sessionKey };
-    setSessionDeadline(Number(element.dataset.expiresAt), Number(element.dataset.serverNow));
+    let expires = Number(element.dataset.expiresAt);
+    let serverNow = Number(element.dataset.serverNow);
+    try {
+        const stored = JSON.parse(localStorage.getItem(sessionClock.key));
+        if (stored && Number.isFinite(stored.expires) && Number.isFinite(stored.offset) && stored.expires > expires) {
+            expires = stored.expires;
+            serverNow = (Date.now() + stored.offset) / 1000;
+        }
+    } catch (_) { /* Server validation remains authoritative. */ }
+    setSessionDeadline(expires, serverNow);
     sessionTicker = setInterval(paintSessionClock, 1000);
 };
 const updateSessionFromResponse = (response) => {
+    if (response.headers.get('X-Session-Expired') === '1' || response.status === 419) lockExpiredSession();
     const expires = response.headers.get('X-Session-Expires-At');
     const serverNow = response.headers.get('X-Session-Server-Time');
     if (expires !== null && serverNow !== null) setSessionDeadline(Number(expires), Number(serverNow));
@@ -118,6 +138,7 @@ if (document.readyState === 'loading') document.addEventListener('DOMContentLoad
 else setupSessionClock();
 document.addEventListener('livewire:navigated', setupSessionClock);
 document.addEventListener('visibilitychange', paintSessionClock);
+window.addEventListener('pageshow', paintSessionClock);
 window.addEventListener('storage', (event) => {
     if (!sessionClock || event.key !== sessionClock.key || !event.newValue) return;
     try {
