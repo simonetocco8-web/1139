@@ -26,7 +26,7 @@ final class Generator
                     if ($start->toDateString() > $through || ($plan->ends_on !== null && $start->greaterThan($plan->ends_on))) {
                         break;
                     }
-                    foreach (app(CycleCalculator::class)->rows($plan, $i, $through) as $row) {
+                    foreach (app(CycleCalculator::class)->rows($plan, $i, $through, true) as $row) {
                         if (! Installment::query()->where('lodge_id', $lodgeId)->where('plan_id', $plan->id)->where('person_id', $row['person_id'])->where('period_start', $row['period_start'])->exists()) {
                             Installment::query()->create($row + ['created_at' => now('UTC')]);
                             $count++;

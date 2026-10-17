@@ -21,18 +21,20 @@ final class ForecastSync
         if ($planId !== null) {
             $query->where('plan_id', $planId);
         }
+        $candidates = [];
         foreach ($query->orderBy('id')->lockForUpdate()->get() as $rate) {
             if (! ($rate->snapshot['generated_early'] ?? false)) {
                 continue;
             }
-            $projection = app(AdvanceGeneration::class)->projection($lodgeId, $rate->plan_id, $rate->period_start->toDateString(), false);
-            $candidate = null;
-            foreach ($projection['rows'] as $row) {
-                if ($row['person_id'] === $rate->person_id) {
-                    $candidate = $row['candidate'];
-                    break;
+            $cycleKey = $rate->plan_id.':'.$rate->period_start->toDateString();
+            if (! array_key_exists($cycleKey, $candidates)) {
+                $projection = app(AdvanceGeneration::class)->projection($lodgeId, $rate->plan_id, $rate->period_start->toDateString(), false);
+                $candidates[$cycleKey] = [];
+                foreach ($projection['rows'] as $row) {
+                    $candidates[$cycleKey][$row['person_id']] = $row['candidate'];
                 }
             }
+            $candidate = $candidates[$cycleKey][$rate->person_id] ?? null;
             $sourceHash = $candidate['snapshot']['source_hash'] ?? hash('sha256', 'excluded:'.$rate->id);
             $last = $rate->corrections()->where('idempotency_key', 'like', 'forecast:%')->orderByDesc('id')->first();
             if (($last->fingerprint ?? $rate->snapshot['source_hash']) === $sourceHash) {

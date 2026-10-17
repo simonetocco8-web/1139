@@ -3,6 +3,7 @@
 namespace App\Domains\Capitations\Actions;
 
 use App\Domains\Capitations\Calendar;
+use App\Domains\Capitations\Models\Installment;
 use App\Domains\Capitations\Models\PersonRule;
 use App\Domains\Capitations\Models\Plan;
 use App\Domains\Capitations\Money;
@@ -12,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 final class CycleCalculator
 {
     /** @return array<int,array<string,mixed>> */
-    public function rows(Plan $plan, int $cycle, string $through): array
+    public function rows(Plan $plan, int $cycle, string $through, bool $skipExisting = false): array
     {
         $lodgeId = $plan->lodge_id;
         $rows = [];
@@ -27,6 +28,9 @@ final class CycleCalculator
             return [];
         }
         foreach (Person::query()->where('lodge_id', $lodgeId)->whereHas('enrollments', fn ($q) => $q->where('starts_on', '<=', min($through, $effectiveEnd->toDateString()))->where(fn ($q) => $q->whereNull('ends_on')->orWhere('ends_on', '>=', $start->toDateString())))->with(['enrollments' => fn ($q) => $q->orderBy('id')])->orderBy('id')->lazy(100) as $person) {
+            if ($skipExisting && Installment::query()->where('lodge_id', $lodgeId)->where('plan_id', $plan->id)->where('person_id', $person->id)->where('period_start', $start->toDateString())->exists()) {
+                continue;
+            }
             $days = 0;
             $periods = [];
             $first = null;
