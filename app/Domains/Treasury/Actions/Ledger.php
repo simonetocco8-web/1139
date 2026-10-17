@@ -104,7 +104,9 @@ final class Ledger
             }
             if ($v['kind'] === 'transfer') {
                 $b = $this->access->account($lodgeId, (int) ($v['target_id'] ?? 0));
-                abort_if($a->id === $b->id, 422, 'Seleziona conti differenti.');
+                if ($a->id === $b->id) {
+                    throw ValidationException::withMessages(['target_id' => 'Seleziona un conto di destinazione diverso dal conto di origine.']);
+                }
                 $lines = [['account_id' => $a->id, 'bucket' => 'financial', 'cents' => -$amount], ['account_id' => $b->id, 'bucket' => 'financial', 'cents' => $amount]];
             } else {
                 $delta = $v['kind'] === 'expense' ? -$amount : $amount;
@@ -145,7 +147,9 @@ final class Ledger
             $this->access->lock($lodgeId, $source->obedience_id, 'reverse');
             $op = Operation::query()->where('lodge_id', $lodgeId)->whereKey($operationId)->with('lines')->firstOrFail();
             abort_if($op->reverses_id !== null, 409, 'Non è consentito stornare uno storno.');
-            abort_if($date < $op->booked_on->toDateString(), 422, 'Data precedente all’operazione originale.');
+            if ($date < $op->booked_on->toDateString()) {
+                throw ValidationException::withMessages(['booked_on' => 'La data dello storno non può precedere quella dell’operazione originale.']);
+            }
             $fpLines = array_values($op->lines->map(fn (Line $l) => ['account_id' => $l->account_id, 'bucket' => $l->bucket, 'cents' => -Money::cents($l->amount, true)])->all());
             $existing = $op->reversal;
             if ($existing) {
@@ -198,7 +202,9 @@ final class Ledger
                 throw ValidationException::withMessages(['amount' => 'Importo oltre i limiti.']);
             }if ($line['account_id'] !== null) {
                 $a = $this->access->account($lodgeId, $line['account_id']);
-                abort_if($date < $a->opened_on->toDateString(), 422, 'Data precedente all’apertura del conto.');
+                if ($date < $a->opened_on->toDateString()) {
+                    throw ValidationException::withMessages(['booked_on' => 'La data contabile non può precedere l’apertura del conto o cassa coinvolto ('.$a->opened_on->format('d/m/Y').').']);
+                }
             }
         }
         $op = Operation::query()->create(['lodge_id' => $lodgeId, 'obedience_id' => $this->access->guard($lodgeId)->obedience_id, 'public_id' => (string) Str::ulid(), 'kind' => $kind, 'booked_on' => $date, 'description' => $description, 'category_id' => $categoryId, 'person_id' => $personId, 'structure_id' => $structureId, 'reverses_id' => $reversesId, 'idempotency_key' => $key, 'fingerprint' => $fp, 'actor_id' => VerifiedSession::user()->id, 'created_at' => now('UTC')]);

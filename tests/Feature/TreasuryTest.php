@@ -115,6 +115,32 @@ class TreasuryTest extends TestCase
         $this->assertSame(98750, Balances::account($this->a->id, $this->bank->id));
     }
 
+    public function test_invalid_manual_business_rules_return_readable_errors_without_posting(): void
+    {
+        $count = Operation::query()->count();
+        $lines = Line::query()->count();
+        $base = ['confirmation' => '1', 'key' => $this->key(), 'account_id' => $this->bank->id, 'amount' => '12.50', 'booked_on' => '2026-10-15', 'description' => 'Operazione fittizia da verificare'];
+        foreach ([['kind' => 'income', 'category_id' => $this->income->id, 'booked_on' => '2025-12-31'], ['kind' => 'transfer', 'target_id' => $this->bank->id]] as $input) {
+            $field = $input['kind'] === 'transfer' ? 'target_id' : 'booked_on';
+            $this->from(route('treasury.form'))->post(route('treasury.post', $this->a->id), $input + $base)->assertRedirect(route('treasury.form'))->assertSessionHasErrors($field)->assertSessionHasInput('key', $base['key']);
+            $this->assertNotEmpty(session('errors')->get($field));
+        }
+        $this->assertSame($count, Operation::query()->count());
+        $this->assertSame($lines, Line::query()->count());
+        $this->assertSame(100000, Balances::account($this->a->id, $this->bank->id));
+    }
+
+    public function test_reversal_before_original_returns_to_detail_without_changing_balances(): void
+    {
+        $op = $this->financial('income', '12.50');
+        $count = Operation::query()->count();
+        $url = route('treasury.detail', [$this->a->id, $op->id]);
+        $this->from($url)->post(route('treasury.reverse', [$this->a->id, $op->id]), ['confirmation' => '1', 'key' => $this->key(), 'booked_on' => '2026-10-14', 'reason' => 'Storno fittizio retrodatato'])->assertRedirect($url)->assertSessionHasErrors('booked_on');
+        $this->assertStringContainsString('La data dello storno non può precedere', session('errors')->first('booked_on'));
+        $this->assertSame($count, Operation::query()->count());
+        $this->assertSame(101250, Balances::account($this->a->id, $this->bank->id));
+    }
+
     private function role(User $u, Lodge $l, string $role = 'administrator'): void
     {
         DB::table('lodge_user')->updateOrInsert(['lodge_id' => $l->id, 'user_id' => $u->id], ['is_active' => true]);
@@ -264,7 +290,7 @@ class TreasuryTest extends TestCase
 
     public function test_entry_before_opening_rejected(): void
     {
-        $this->expectException(HttpException::class);
+        $this->expectException(ValidationException::class);
         $this->financial('income', '10.00', extra: ['booked_on' => '2025-12-31']);
     }
 
